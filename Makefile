@@ -1,7 +1,7 @@
 .PHONY: help up down down-volumes restart restart-workers build \
         logs logs-web logs-worker logs-db \
         shell dbshell redis-cli \
-        makemigrations migrate check migrate-check superuser collectstatic \
+        startapp makemigrations migrate check migrate-check superuser collectstatic \
         showmigrations squashmigrations flush dumpdata loaddata \
         pip-install pip-freeze \
         test check-deploy \
@@ -40,6 +40,7 @@ help:
 	@echo "  make migrate-check     - Verify no missing migrations exist"
 	@echo "  make showmigrations    - List all migrations and their status"
 	@echo "  make squashmigrations  - Squash an app's migrations (set APP=myapp NUM=0001)"
+	@echo "  make startapp          - Create a new Django app (set APP=myapp)"
 	@echo "  make flush             - ⚠️ Wipe all data from the database"
 	@echo "  make dumpdata          - Dump all DB data to fixtures/db.json"
 	@echo "  make loaddata          - Load fixtures/db.json into the DB"
@@ -130,6 +131,9 @@ showmigrations:
 
 squashmigrations:
 	docker compose exec web python manage.py squashmigrations $(APP) $(NUM)
+
+startapp:
+	docker compose exec web python manage.py startapp $(APP)
 
 flush:
 	docker compose exec web python manage.py flush --noinput

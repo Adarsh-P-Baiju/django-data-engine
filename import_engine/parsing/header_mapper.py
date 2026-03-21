@@ -16,10 +16,15 @@ def generate_fuzzy_mapping(raw_headers: list[str], config_fields: dict) -> dict:
             continue
         cleaned_raw = str(raw).strip().lower()
         matched = False
-        for expected in list(unmapped_expected):
-            if expected.lower() == cleaned_raw:
-                mapping[raw] = expected
-                unmapped_expected.remove(expected)
+        # Try exact match with field name or label
+        for expected_name, field_cfg in config_fields.items():
+            if expected_name not in unmapped_expected:
+                continue
+                
+            label = field_cfg.get('label', '').lower() if isinstance(field_cfg, dict) else ''
+            if expected_name.lower() == cleaned_raw or label == cleaned_raw:
+                mapping[raw] = expected_name
+                unmapped_expected.remove(expected_name)
                 matched = True
                 break
         

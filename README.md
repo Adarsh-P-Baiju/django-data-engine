@@ -276,7 +276,7 @@ import_engine/
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/django-data-engine.git
+git clone https://github.com/Adarsh-P-Baiju/django-data-engine.git
 cd django-data-engine
 
 # Configure environment

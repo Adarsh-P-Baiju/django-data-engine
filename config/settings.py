@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'import_engine',
+    'demo',
 ]
 
 MIDDLEWARE = [
@@ -138,7 +139,7 @@ STATIC_URL = 'static/'
 # MinIO / S3 Storage
 STORAGES = {
     "default": {
-        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "BACKEND": "import_engine.utils.storage.LocalhostMinioStorage",
     },
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
@@ -159,12 +160,22 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 
+CELERY_TASK_ROUTES = {
+    'import_engine.tasks.processing_tasks.orchestrate_job': {'queue': 'light_tasks'},
+    'import_engine.tasks.processing_tasks.process_chunk': {'queue': 'heavy_tasks'},
+    'import_engine.tasks.cleanup_tasks.cleanup_job': {'queue': 'light_tasks'},
+}
+
 # ClamAV
 CLAMAV_HOST = os.environ.get("CLAMAV_HOST", "clamav")
 CLAMAV_PORT = int(os.environ.get("CLAMAV_PORT", "3310"))
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_THROTTLE_RATES': {
+        'import_uploads': '100/day',
+        'import_uploads_anon': '10/day',
+    }
 }
 
 LOGGING = {
