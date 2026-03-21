@@ -1,0 +1,114 @@
+name: "🚀 1000000x Enterprise Pipeline"
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    name: 🛡️ Security & Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: TruffleHog Secret Scanner
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: 'pip'
+
+      - name: Bandit Security Scan
+        run: |
+          pip install bandit
+          bandit -r import_engine/ -ll -ii
+
+  quality:
+    name: ✨ Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          
+      - name: Install Ruff & Mypy
+        run: pip install ruff mypy django-stubs djangorestframework-stubs
+
+      - name: Ruff Formatter
+        run: ruff format --check .
+
+      - name: Ruff Linter
+        run: ruff check . --output-format=github
+
+      - name: Mypy Static Type Checking
+        run: mypy import_engine/ --ignore-missing-imports
+
+  django-checks:
+    name: ⚙️ System & Migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        
+      - name: Create Env
+        run: |
+          echo "POSTGRES_DB=import_db" >> .env
+          echo "POSTGRES_USER=pguser" >> .env
+          echo "POSTGRES_PASSWORD=pgpassword" >> .env
+          echo "MINIO_BUCKET_NAME=imports" >> .env
+          echo "SECRET_KEY=test-secret" >> .env
+
+      - name: Verify Missing Migrations
+        run: |
+          docker compose up -d db redis minio clamav
+          sleep 10
+          docker compose run --rm web python manage.py makemigrations --check --dry-run
+          docker compose run --rm web python manage.py check --deploy
+
+  tests:
+    name: 🧪 Automated Tests & Coverage
+    runs-on: ubuntu-latest
+    needs: [security, quality, django-checks]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Env
+        run: |
+          echo "POSTGRES_DB=import_db" >> .env
+          echo "POSTGRES_USER=pguser" >> .env
+          echo "POSTGRES_PASSWORD=pgpassword" >> .env
+          echo "MINIO_BUCKET_NAME=imports" >> .env
+          echo "SECRET_KEY=test-secret" >> .env
+
+      - name: Spin up Infrastructure
+        run: docker compose up -d --build
+          
+      - name: Wait for Healthchecks
+        run: sleep 20
+
+      - name: Run Test Suite with Coverage
+        run: docker compose exec -T web bash -c "pip install pytest pytest-django pytest-cov && pytest --cov=import_engine --cov-report=xml"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          fail_ci_if_error: false

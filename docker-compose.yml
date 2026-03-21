@@ -1,0 +1,121 @@
+version: '3.8'
+
+x-app-defaults: &app-defaults
+  build: .
+  volumes:
+    - .:/app
+    - uploads-tmp:/tmp/uploads
+  env_file:
+    - .env
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    clamav:
+      condition: service_started
+    minio:
+      condition: service_healthy
+
+services:
+  web:
+    <<: *app-defaults
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+
+  celery_heavy:
+    <<: *app-defaults
+    command: celery -A config worker -Q heavy_tasks --loglevel=info -n heavy@%h
+
+  celery_light:
+    <<: *app-defaults
+    command: celery -A config worker -Q light_tasks --loglevel=info -n light@%h
+
+  flower:
+    <<: *app-defaults
+    command: celery -A config flower
+    ports:
+      - "5555:5555"
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5444:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # We share uploads-tmp with ClamAV and run scan-before-save here
+  clamav:
+    image: clamav/clamav:latest
+    ports:
+      - "3310:3310"
+    volumes:
+      - uploads-tmp:/tmp/uploads
+    # Wait for ClamAV to download signatures before accepting commands
+    # Official clamav uses clamdscan commands for healthchecks or netcat
+    healthcheck:
+      test: ["CMD", "clamdscan", "--ping", "||", "exit", "0"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin &&
+      /usr/bin/mc mb myminio/${MINIO_BUCKET_NAME} --ignore-existing &&
+      /usr/bin/mc anonymous set public myminio/${MINIO_BUCKET_NAME}
+      "
+
+volumes:
+  postgres_data:
+  uploads-tmp:
+  minio_data:
