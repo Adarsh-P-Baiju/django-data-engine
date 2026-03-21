@@ -78,14 +78,14 @@ The **Django Data Engine Import Engine** allows you to plug-and-play enterprise-
 
 ### 🧠 Smart Fuzzy Header Mapping
 - Powered by `thefuzz` and `python-Levenshtein`.
-- Compares raw CSV/Excel column headers against your config field keys.
+- Compares raw CSV/Excel column headers against your config field keys **and human-readable `label`s**.
 - Exact matches are mapped first. Remaining headers with ≥85% Levenshtein similarity are automatically matched.
 - The resolved mapping `dict` is stored on the `ImportJob.field_mapping` JSON field.
 - Every Celery chunk worker then rewrites each incoming row dict using the resolved mapping before validation.
 
 ```
 Raw headers:    ["Full Name", "Email Adress", "Dept"]
-Config fields:  ["full_name", "email_address", "department"]
+Config fields:  ["full_name", "email_address", "department"] (or their assigned labels)
 
 Resolved:       { "Full Name" → "full_name", "Email Adress" → "email_address", "Dept" → "department" }
 ```
@@ -148,10 +148,13 @@ ws.onmessage = (e) => console.log(JSON.parse(e.data));
 - Every file is MD5-fingerprinted on upload.
 - If the same file is re-uploaded while an active job exists, it is immediately rejected, preventing duplicate data.
 
-### 📊 Excel Template Generator
-- `GET /api/engine/template/{model_name}/` returns a generated `.xlsx` file.
-- Required fields are highlighted in red. FK fields include a **dynamic dropdown** populated with all valid related object names. Tooltips describe field validation rules.
-- Eliminates guesswork for end users filling in import data.
+### 📊 Smart Excel Template Generator
+- `GET /api/engine/template/{model_name}/` returns a dynamically generated `.xlsx` file fully compatible with both Excel and Google Sheets.
+- Extracted headers use the human-readable `label` parameter from your DSL config.
+- Required fields are highlighted in red.
+- **Dynamic Reference Dropdowns**: FK and Choice fields automatically query the database and embed up to 100 choices inside dedicated Reference Sheets (e.g. `Department Reference`).
+- Bulletproof validation is implemented using **Named Ranges** to ensure dropdowns survive import into third-party tools like Google Sheets.
+- Tooltips are embedded in header cells explaining field requirements.
 
 ### 🧹 Automatic Cleanup
 - When all chunks of a job complete, `cleanup_job` is dispatched to the `light_tasks` queue.
@@ -170,10 +173,10 @@ from myapp.models import Employee
 register_config(ImportConfig(
     model=Employee,
     fields={
-        "full_name":  {"rules": ["required"]},
-        "email":      {"rules": ["required", "email"]},
-        "department": {"fk": "Department", "lookup": "name"},
-        "role":       {"fk": "Role", "lookup": "title"},
+        "full_name":  {"label": "Employee Name", "rules": ["required"]},
+        "email":      {"label": "Email", "rules": ["required", "email"]},
+        "department": {"label": "Department", "fk": "Department", "lookup": "name"},
+        "role":       {"label": "Rank / Role", "fk": "Role", "lookup": "title"},
     }
 ))
 ```
