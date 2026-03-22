@@ -14,7 +14,7 @@ jobs:
     name: Auto-Formatter & Linter
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref || github.ref_name }}
           # We need a personal access token or specific configuration if branch protections are heavily isolated
