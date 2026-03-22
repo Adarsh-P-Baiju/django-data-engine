@@ -45,11 +45,11 @@ def generate_template(config) -> io.BytesIO:
             )
 
         cell.comment = Comment("\n".join(tips), "ImportEngine")
-        
+
         if isinstance(f_config, dict) and f_config.get("pii"):
             col_letter = ws.cell(row=1, column=col_idx).column_letter
             for r_num in range(2, 1001):
-                ws[f"{col_letter}{r_num}"].number_format = '**;**;**;**'
+                ws[f"{col_letter}{r_num}"].number_format = "**;**;**;**"
 
         choices = []
         is_choice_or_fk = False
@@ -95,9 +95,7 @@ def generate_template(config) -> io.BytesIO:
                 suffix_counter += 1
 
             ref_ws = wb.create_sheet(title=safe_sheet_name)
-            ref_ws.sheet_state = (
-                "visible"  
-            )
+            ref_ws.sheet_state = "visible"
 
             ref_ws.cell(row=1, column=1, value=f"{label} Choices")
             choice_strs = []
