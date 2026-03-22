@@ -79,11 +79,8 @@ def process_chunk(self, chunk_id):
             job.save(update_fields=['total_rows'])
             job.refresh_from_db(fields=['total_rows'])
             
-        raw_dicts = [rd for idx, rd in rows_data]
-        resolver.prefetch(raw_dicts)
-        
-        model_class = config.model
-        
+        # Normalize headers via mapping or auto-mapping BEFORE prefetching
+        mapped_rows_data = []
         for row_idx, row_dict in rows_data:
             if job.field_mapping:
                 mapped_dict = {}
@@ -101,7 +98,15 @@ def process_chunk(self, chunk_id):
                     target = label_to_field.get(raw_key, raw_key)
                     auto_mapped[target] = raw_val
                 row_dict = auto_mapped
-                
+            mapped_rows_data.append((row_idx, row_dict))
+
+        rows_data = mapped_rows_data
+        raw_dicts = [rd for idx, rd in rows_data]
+        resolver.prefetch(raw_dicts)
+        
+        model_class = config.model
+        
+        for row_idx, row_dict in rows_data:
             cleaned_data, errors = validate_row(config, row_dict)
             
             for fk_field, f_config in resolver.fk_fields.items():
