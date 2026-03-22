@@ -220,9 +220,18 @@ import_engine/
 │   ├── views/
 │   │   ├── upload_views.py    # ImportUploadView, TemplateDownloadView
 │   │   └── manage_views.py    # JobStatusView, JobChunksView, JobLogsView
-│   ├── mixins.py              # ImportMixin for ViewSets
-│   ├── serializers.py
-│   ├── throttling.py
+│   ├── file_validators/
+│   │   ├── __init__.py
+│   │   └── core.py            # Size, MIME, Extension checks
+│   ├── mixins/
+│   │   ├── __init__.py
+│   │   └── core.py            # ImportMixin for ViewSets
+│   ├── serializers/
+│   │   ├── __init__.py        # Re-exports core serializers
+│   │   └── core.py            # ImportJob, ImportChunk, ImportLog
+│   ├── throttling/
+│   │   ├── __init__.py
+│   │   └── rates.py           # UploadUserRateThrottle, UploadAnonRateThrottle
 │   └── urls.py
 ├── domain/
 │   ├── models/

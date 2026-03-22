@@ -120,14 +120,12 @@ def process_chunk(self, chunk_id):
                         if is_required:
                             errors[fk_field] = f"Could not resolve FK for '{val}'"
                         else:
-                            # Not required; gracefully neglect the missing FK
                             cleaned_data.pop(fk_field, None)
                             cleaned_data[fk_field] = None
                     else:
                         cleaned_data[fk_field] = resolved_obj
                         
             if errors:
-                # Obfuscate PII before logging to DB
                 safe_row_data = dict(row_dict)
                 for f_name, f_config in config.fields.items():
                     if isinstance(f_config, dict) and f_config.get('pii'):
@@ -186,7 +184,6 @@ def process_chunk(self, chunk_id):
         }
         logger.info(payload)
         
-        # Debounce the WebSocket emitting to every 5th chunk (or the final chunk) to prevent ASGI overhead on huge files
         total_chunks = job.chunks.count()
         if chunk.chunk_index % 5 == 0 or chunk.chunk_index == (total_chunks - 1) or total_chunks < 10:
             from asgiref.sync import async_to_sync
