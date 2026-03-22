@@ -1,12 +1,14 @@
-def bulk_persist(model, instances: list, upsert_fields: dict = None, ignore_conflicts: bool = False):
+def bulk_persist(
+    model, instances: list, upsert_fields: dict = None, ignore_conflicts: bool = False
+):
     """
-    Saves instances using bulk_create. 
+    Saves instances using bulk_create.
     Can utilize upsert via PostgreSQL ON CONFLICT utilizing unique_fields and update_fields.
     """
     if upsert_fields:
-        unique_fields = upsert_fields.get('unique_fields', [])
-        update_fields = upsert_fields.get('update_fields', [])
-        
+        unique_fields = upsert_fields.get("unique_fields", [])
+        update_fields = upsert_fields.get("update_fields", [])
+
         # Guard against empty update_fields failing the UPSERT clause
         if not update_fields:
             model.objects.bulk_create(instances, ignore_conflicts=True)
@@ -15,7 +17,7 @@ def bulk_persist(model, instances: list, upsert_fields: dict = None, ignore_conf
                 instances,
                 update_conflicts=True,
                 unique_fields=unique_fields,
-                update_fields=update_fields
+                update_fields=update_fields,
             )
     else:
         model.objects.bulk_create(instances, ignore_conflicts=ignore_conflicts)
