@@ -14,4 +14,4 @@ def bulk_persist(model, instances: list, upsert_fields: dict = None):
             update_fields=update_fields
         )
     else:
-        model.objects.bulk_create(instances, ignore_conflicts=True)
+        model.objects.bulk_create(instances)

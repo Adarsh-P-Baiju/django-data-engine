@@ -65,8 +65,19 @@ def process_chunk(self, chunk_id):
     
     try:
         rows_data = []
+        empty_count = 0
         for row_idx, row_dict in adapter.iter_rows(start_row=chunk.start_row, end_row=chunk.end_row):
+            # Check if entirely empty (all values None or whitespace)
+            if not any(v is not None and str(v).strip() != '' for v in row_dict.values()):
+                empty_count += 1
+                continue
             rows_data.append((row_idx, row_dict))
+            
+        if empty_count > 0:
+            from django.db.models import F
+            job.total_rows = F('total_rows') - empty_count
+            job.save(update_fields=['total_rows'])
+            job.refresh_from_db(fields=['total_rows'])
             
         raw_dicts = [rd for idx, rd in rows_data]
         resolver.prefetch(raw_dicts)
@@ -80,16 +91,35 @@ def process_chunk(self, chunk_id):
                     if raw_key in job.field_mapping:
                         mapped_dict[job.field_mapping[raw_key]] = raw_val
                 row_dict = mapped_dict
+            else:
+                auto_mapped = {}
+                label_to_field = {
+                    (f_config.get('label') if isinstance(f_config, dict) else f_name): f_name
+                    for f_name, f_config in config.fields.items()
+                }
+                for raw_key, raw_val in row_dict.items():
+                    target = label_to_field.get(raw_key, raw_key)
+                    auto_mapped[target] = raw_val
+                row_dict = auto_mapped
+                
             cleaned_data, errors = validate_row(config, row_dict)
             
-            for fk_field in resolver.fk_fields:
+            for fk_field, f_config in resolver.fk_fields.items():
                 val = row_dict.get(fk_field)
                 if val:
-                    resolved_id = resolver.resolve(fk_field, val)
-                    if not resolved_id:
-                        errors[fk_field] = f"Could not resolve FK for '{val}'"
+                    resolved_obj = resolver.resolve(fk_field, val)
+                    if not resolved_obj:
+                        rules = f_config.get('rules', []) if isinstance(f_config, dict) else []
+                        is_required = ('required' in rules) or (isinstance(f_config, dict) and f_config.get('required'))
+                        
+                        if is_required:
+                            errors[fk_field] = f"Could not resolve FK for '{val}'"
+                        else:
+                            # Not required; gracefully neglect the missing FK
+                            cleaned_data.pop(fk_field, None)
+                            cleaned_data[fk_field] = None
                     else:
-                        cleaned_data[f"{fk_field}_id"] = resolved_id
+                        cleaned_data[fk_field] = resolved_obj
                         
             if errors:
                 logs_to_create.append(ImportLog(
@@ -101,6 +131,8 @@ def process_chunk(self, chunk_id):
                     is_fatal=True
                 ))
             else:
+                if 'department' in cleaned_data:
+                    logger.error(f"STRANGE: department still in cleaned_data! keys={list(cleaned_data.keys())}, fk_fields={list(resolver.fk_fields.keys())}")
                 instances_to_create.append(model_class(**cleaned_data))
                 
         with transaction.atomic():
@@ -170,10 +202,18 @@ def check_job_completion(job_id):
     chunks = list(job.chunks.all())
     
     if all(c.status == ImportChunk.Status.DONE for c in chunks):
-        job.status = ImportJob.Status.COMPLETED
         job.failure_count = ImportLog.objects.filter(job=job).count()
         job.success_count = job.total_rows - job.failure_count
+        
+        if job.failure_count > 0 and job.success_count == 0:
+            job.status = ImportJob.Status.FAILED
+            job.error_message = f"All {job.failure_count} rows failed import validation."
+        else:
+            job.status = ImportJob.Status.COMPLETED
+            
         job.save()
         
-        from .cleanup_tasks import cleanup_job
-        cleanup_job.delay(job.id)
+        from django.conf import settings
+        if not getattr(settings, 'DEBUG', False):
+            from .cleanup_tasks import cleanup_job
+            cleanup_job.delay(job.id)

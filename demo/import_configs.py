@@ -30,8 +30,8 @@ class EmployeeImportConfig(BaseImportConfig):
         'rating': {'label': 'Performance Rating', 'rules': []},
         'is_active': {'label': 'Currently Active', 'rules': []},
         'joined_date': {'label': 'Join Date', 'rules': ['required']},
-        'department': {'label': 'Department', 'fk': 'Department', 'lookup': 'name'},
-        'role': {'label': 'Rank/Role', 'fk': 'Role', 'lookup': 'title'},
+        'department': {'label': 'Department', 'fk': 'Department', 'lookup': 'name', 'create_if_missing': True},
+        'role': {'label': 'Rank/Role', 'fk': 'Role', 'lookup': 'title', 'create_if_missing': True},
         'notes': {'label': 'Private Notes', 'rules': []}
     }
 

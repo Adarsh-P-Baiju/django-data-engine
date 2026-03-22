@@ -6,7 +6,13 @@ class ExcelAdapter(BaseParserAdapter):
         super().__init__(file_path_or_buffer)
         # Using read_only=True significantly reduces memory footprint for large files
         self.workbook = load_workbook(filename=self.source, read_only=True, data_only=True)
-        self.sheet = self.workbook.active
+        
+        # Explicitly read from the primary data sheet rather than whatever sheet the user happened to leave active
+        if "Import Data" in self.workbook.sheetnames:
+            self.sheet = self.workbook["Import Data"]
+        else:
+            self.sheet = self.workbook.active
+            
         self._headers = None
 
     def get_headers(self) -> list[str]:
