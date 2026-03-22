@@ -26,7 +26,7 @@ class PipelineTests(TestCase):
     @patch("import_engine.services.security_service.VirusScanner.scan_file")
     @patch("import_engine.execution_engine.orchestrator.dispatch_import_job")
     def test_clean_file_upload(self, mock_dispatch, mock_scan):
-        mock_scan.return_value = (True, None)  # Clean file
+        mock_scan.return_value = (True, None)
 
         csv_content = b"name\nAlice\nBob\n"
         uploaded = SimpleUploadedFile("clean.csv", csv_content, content_type="text/csv")
@@ -39,7 +39,7 @@ class PipelineTests(TestCase):
 
     @patch("import_engine.services.security_service.VirusScanner.scan_file")
     def test_infected_file_upload_rejected(self, mock_scan):
-        mock_scan.return_value = (False, "EICAR-Test-Signature")  # Infected
+        mock_scan.return_value = (False, "EICAR-Test-Signature")
 
         csv_content = (
             b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"

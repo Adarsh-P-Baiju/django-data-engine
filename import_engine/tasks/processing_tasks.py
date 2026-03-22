@@ -71,7 +71,6 @@ def process_chunk(self, chunk_id):
         for row_idx, row_dict in adapter.iter_rows(
             start_row=chunk.start_row, end_row=chunk.end_row
         ):
-            # Check if entirely empty (all values None or whitespace)
             if not any(
                 v is not None and str(v).strip() != "" for v in row_dict.values()
             ):
@@ -86,7 +85,6 @@ def process_chunk(self, chunk_id):
             job.save(update_fields=["total_rows"])
             job.refresh_from_db(fields=["total_rows"])
 
-        # Normalize headers via mapping or auto-mapping BEFORE prefetching
         mapped_rows_data = []
         for row_idx, row_dict in rows_data:
             if job.field_mapping:
@@ -170,7 +168,6 @@ def process_chunk(self, chunk_id):
                 conflict_res = getattr(config, "conflict_resolution", "fail")
                 if conflict_res == "update":
                     upsert_keys = getattr(config, "upsert_keys", []) or []
-                    # Everything not an upsert key is an update field
                     update_fields = [
                         f for f in config.fields.keys() if f not in upsert_keys
                     ]

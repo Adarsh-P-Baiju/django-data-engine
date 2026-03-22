@@ -17,6 +17,10 @@ class DSLValidator:
                 if not re.match(r"[^@]+@[^@]+\.[^@]+", str(value)):
                     raise ValidationError("Invalid email address.")
 
+            if rule == "phone":
+                if not re.match(r"^\+?[0-9\s\-\(\).]{7,20}$", str(value)):
+                    raise ValidationError("Invalid phone number format.")
+
             if rule.startswith("min:"):
                 min_val = float(rule.split(":")[1])
                 if float(value) < min_val:

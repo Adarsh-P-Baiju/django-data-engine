@@ -9,7 +9,6 @@ def bulk_persist(
         unique_fields = upsert_fields.get("unique_fields", [])
         update_fields = upsert_fields.get("update_fields", [])
 
-        # Guard against empty update_fields failing the UPSERT clause
         if not update_fields:
             model.objects.bulk_create(instances, ignore_conflicts=True)
         else:

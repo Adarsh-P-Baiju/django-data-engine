@@ -51,7 +51,6 @@ def handle_upload(model_name: str, uploaded_file) -> ImportJob:
                 random_name = f"{job.id}_{uploaded_file.name}"
                 job.file.save(random_name, ContentFile(clean_file.read()), save=True)
 
-        # Trigger Celery Dispatch
         from import_engine.execution_engine.orchestrator import dispatch_import_job
 
         dispatch_import_job(job.id)

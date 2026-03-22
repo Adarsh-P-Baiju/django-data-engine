@@ -33,9 +33,9 @@ class EmployeeImportConfig(BaseImportConfig):
             "rules": ["required", "email"],
             "pii": True,
         },
-        "phone": {"label": "Phone Number", "rules": [], "pii": True},
+        "phone": {"label": "Phone Number", "rules": ["phone"], "pii": True},
         "age": {"label": "Age", "rules": ["required"]},
-        "salary": {"label": "Annual Salary", "rules": ["required"]},
+        "salary": {"label": "Annual Salary", "rules": ["required"], "pii": True},
         "rating": {"label": "Performance Rating", "rules": []},
         "is_active": {"label": "Currently Active", "rules": []},
         "joined_date": {"label": "Join Date", "rules": ["required"]},
@@ -51,7 +51,7 @@ class EmployeeImportConfig(BaseImportConfig):
             "lookup": "title",
             "create_if_missing": True,
         },
-        "notes": {"label": "Private Notes", "rules": []},
+        "notes": {"label": "Private Notes", "rules": [], "pii": True},
     }
 
 

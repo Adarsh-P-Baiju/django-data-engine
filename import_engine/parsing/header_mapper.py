@@ -17,7 +17,6 @@ def generate_fuzzy_mapping(raw_headers: list[str], config_fields: dict) -> dict:
             continue
         cleaned_raw = str(raw).strip().lower()
         matched = False
-        # Try exact match with field name or label
         for expected_name, field_cfg in config_fields.items():
             if expected_name not in unmapped_expected:
                 continue

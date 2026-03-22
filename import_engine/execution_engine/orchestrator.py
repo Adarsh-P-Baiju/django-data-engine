@@ -58,7 +58,7 @@ def generate_chunks_for_job(job_id: str, chunk_size: int = 1000):
 
             chunk_index += 1
 
-        job.total_rows = chunk_index * chunk_size  # Upper bound approx
+        job.total_rows = chunk_index * chunk_size
         job.save(update_fields=["total_rows"])
 
     finally:

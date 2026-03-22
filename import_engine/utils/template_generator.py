@@ -45,8 +45,12 @@ def generate_template(config) -> io.BytesIO:
             )
 
         cell.comment = Comment("\n".join(tips), "ImportEngine")
+        
+        if isinstance(f_config, dict) and f_config.get("pii"):
+            col_letter = ws.cell(row=1, column=col_idx).column_letter
+            for r_num in range(2, 1001):
+                ws[f"{col_letter}{r_num}"].number_format = '**;**;**;**'
 
-        # Support for Choices
         choices = []
         is_choice_or_fk = False
 
@@ -65,7 +69,6 @@ def generate_template(config) -> io.BytesIO:
                     lookup_field = getattr(
                         fk_config, "lookup_field", f_config.get("lookup", "name")
                     )
-                    # Fetch first 100 choices for the dropdown to avoid huge Excel files
                     choices = list(
                         fk_config.model.objects.all().values_list(
                             lookup_field, flat=True
@@ -74,21 +77,16 @@ def generate_template(config) -> io.BytesIO:
                     is_choice_or_fk = True
 
         if is_choice_or_fk and choices:
-            # Create a custom named reference sheet for this specific field
             import re
 
-            # Excel limits sheet names to 31 chars and prevents \ / * ? : [ ]
-            # Replace invalid chars with space, then collapse multiple spaces, then trim
             safe_label = re.sub(r"[\\/*?:\[\]]", " ", label)
             safe_label = re.sub(r"\s+", " ", safe_label).strip()
 
-            # Ensure " Ref" suffix fits within 31 chars
             base_name_limit = 31 - len(" Ref")
             base_name = safe_label[:base_name_limit].strip()
 
             safe_sheet_name = f"{base_name} Ref"
 
-            # Handle duplicates if two fields sanitize to the same base name (e.g. "Rank/Role" and "Rank*Role")
             suffix_counter = 1
             while safe_sheet_name in wb.sheetnames:
                 suffix = f" {suffix_counter}"
@@ -98,24 +96,20 @@ def generate_template(config) -> io.BytesIO:
 
             ref_ws = wb.create_sheet(title=safe_sheet_name)
             ref_ws.sheet_state = (
-                "visible"  # visible for debugging, hide later if desired
+                "visible"  
             )
 
             ref_ws.cell(row=1, column=1, value=f"{label} Choices")
             choice_strs = []
             for r_idx, c_val in enumerate(choices, start=2):
-                # Ensure atomic values and convert to string for Excel
                 val = str(c_val[0] if isinstance(c_val, (list, tuple)) else c_val)
                 choice_strs.append(val)
                 ref_ws.cell(row=r_idx, column=1, value=val)
 
-            # Use Named Ranges (Defined Names) for bulletproof Google Sheets compatibility
             from openpyxl.workbook.defined_name import DefinedName
 
-            # If the CSV of choices is under 255 chars, we can embed it directly and skip the reference sheet formula entirely for better compatibility.
             csv_choices = ",".join(choice_strs)
             if len(csv_choices) < 255:
-                # Wrap in double quotes for explicit literal list
                 dv_formula = f'"{csv_choices}"'
                 dv = DataValidation(
                     type="list",
@@ -125,11 +119,9 @@ def generate_template(config) -> io.BytesIO:
                 )
                 ws.add_data_validation(dv)
             else:
-                # Sheet names with spaces or special chars must be single-quoted in the range string
                 safe_sheet_name_escaped = safe_sheet_name.replace("'", "''")
                 range_str = f"'{safe_sheet_name_escaped}'!$A$2:$A${len(choices) + 1}"
 
-                # Named ranges cannot contain spaces or special chars, only letters, numbers, and underscores
                 safe_range_name = re.sub(r"[^A-Za-z0-9_]", "_", f_name)
                 list_name = f"ChoicesList_{safe_range_name}_{col_idx}"
 
@@ -139,7 +131,6 @@ def generate_template(config) -> io.BytesIO:
                 else:
                     wb.defined_names.add(defined_name)
 
-                # The formula must start with exactly one equal sign.
                 dv_formula = f"={list_name}"
 
                 dv = DataValidation(
@@ -148,15 +139,11 @@ def generate_template(config) -> io.BytesIO:
                     allow_blank=True,
                     showInputMessage=True,
                 )
-                # Prevent Excel from wrapping formulas in literal quotes
                 dv.quotePrefix = False
                 ws.add_data_validation(dv)
 
             target_col_letter = ws.cell(row=1, column=col_idx).column_letter
-            # Apply to the entire column below the header
             dv.add(f"{target_col_letter}2:{target_col_letter}1000")
-
-            # Auto-adjust column width for the reference sheet
             ref_ws.column_dimensions["A"].width = max(len(label) + 10, 25)
 
         elif not is_choice_or_fk:

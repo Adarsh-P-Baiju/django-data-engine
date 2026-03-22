@@ -48,7 +48,6 @@ class FKResolver:
                     new_objs = []
                     for val in missing_values:
                         kwargs = {lookup_field: val, **defaults}
-                        # Auto-generate a generic code if missing for Department
                         if "code" not in kwargs and hasattr(model, "code"):
                             kwargs["code"] = val[:10].upper()
                         new_objs.append(model(**kwargs))
