@@ -4,6 +4,8 @@ class BaseImportConfig:
     """
     model = None
     fields = {}
+    conflict_resolution = 'fail'
+    upsert_keys = None
 
 _import_registry = {}
 

@@ -21,10 +21,12 @@ class RoleImportConfig(BaseImportConfig):
 @register_import('Employee')
 class EmployeeImportConfig(BaseImportConfig):
     model = Employee
+    conflict_resolution = 'update'
+    upsert_keys = ['email']
     fields = {
         'full_name': {'label': 'Full Name', 'rules': ['required']},
-        'email': {'label': 'Email Address', 'rules': ['required', 'email']},
-        'phone': {'label': 'Phone Number', 'rules': []},
+        'email': {'label': 'Email Address', 'rules': ['required', 'email'], 'pii': True},
+        'phone': {'label': 'Phone Number', 'rules': [], 'pii': True},
         'age': {'label': 'Age', 'rules': ['required']},
         'salary': {'label': 'Annual Salary', 'rules': ['required']},
         'rating': {'label': 'Performance Rating', 'rules': []},

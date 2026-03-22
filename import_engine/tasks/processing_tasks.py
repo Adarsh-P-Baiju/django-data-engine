@@ -127,11 +127,19 @@ def process_chunk(self, chunk_id):
                         cleaned_data[fk_field] = resolved_obj
                         
             if errors:
+                # Obfuscate PII before logging to DB
+                safe_row_data = dict(row_dict)
+                for f_name, f_config in config.fields.items():
+                    if isinstance(f_config, dict) and f_config.get('pii'):
+                        label = f_config.get('label', f_name)
+                        if label in safe_row_data:
+                            safe_row_data[label] = "*** MASKED ***"
+
                 logs_to_create.append(ImportLog(
                     job=job,
                     chunk=chunk,
                     row_number=row_idx,
-                    row_data=row_dict,
+                    row_data=safe_row_data,
                     errors=errors,
                     is_fatal=True
                 ))
@@ -142,7 +150,20 @@ def process_chunk(self, chunk_id):
                 
         with transaction.atomic():
             if instances_to_create:
-                bulk_persist(model_class, instances_to_create)
+                conflict_res = getattr(config, 'conflict_resolution', 'fail')
+                if conflict_res == 'update':
+                    upsert_keys = getattr(config, 'upsert_keys', []) or []
+                    # Everything not an upsert key is an update field
+                    update_fields = [f for f in config.fields.keys() if f not in upsert_keys]
+                    upsert_fields = {
+                        'unique_fields': upsert_keys,
+                        'update_fields': update_fields
+                    }
+                    bulk_persist(model_class, instances_to_create, upsert_fields=upsert_fields)
+                elif conflict_res == 'ignore':
+                    bulk_persist(model_class, instances_to_create, ignore_conflicts=True)
+                else:
+                    bulk_persist(model_class, instances_to_create)
                 
             if logs_to_create:
                 ImportLog.objects.bulk_create(logs_to_create)
@@ -164,16 +185,20 @@ def process_chunk(self, chunk_id):
             "latency_ms": int(elapsed * 1000)
         }
         logger.info(payload)
-        from asgiref.sync import async_to_sync
-        from channels.layers import get_channel_layer
-        try:
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                f"job_{job.id}",
-                {"type": "job_progress", "payload": payload}
-            )
-        except Exception as e:
-            logger.error(f"Channels Failed: {e}")
+        
+        # Debounce the WebSocket emitting to every 5th chunk (or the final chunk) to prevent ASGI overhead on huge files
+        total_chunks = job.chunks.count()
+        if chunk.chunk_index % 5 == 0 or chunk.chunk_index == (total_chunks - 1) or total_chunks < 10:
+            from asgiref.sync import async_to_sync
+            from channels.layers import get_channel_layer
+            try:
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f"job_{job.id}",
+                    {"type": "job_progress", "payload": payload}
+                )
+            except Exception as e:
+                logger.error(f"Channels Failed: {e}")
         
     except Exception as exc:
         chunk.retry_count += 1
