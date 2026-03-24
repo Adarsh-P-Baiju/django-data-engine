@@ -56,7 +56,7 @@ help:
 	@echo "  make ruff              - Ruff lint check"
 	@echo "  make ruff-fix          - Auto-fix all ruff violations"
 	@echo "  make format            - Auto-format with black"
-	@echo "  make lint              - Flake8 lint check"
+	@echo "  make test-100k         - Run 100,000+ MCST Diagnostic Suite"
 	@echo "=================================================================="
 
 # ========================
@@ -164,6 +164,9 @@ pip-freeze:
 # ========================
 test:
 	docker compose exec web python manage.py test import_engine
+
+test-100k:
+	docker compose exec web python manage.py test import_engine --testrunner=import_engine.tests.runner.PremiumReportRunner
 
 ruff:
 	docker compose exec web ruff check .
