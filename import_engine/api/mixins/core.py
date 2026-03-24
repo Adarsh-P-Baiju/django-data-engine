@@ -40,6 +40,31 @@ class ImportMixin:
         return super().get_throttles()
 
     @extend_schema(
+        summary="Analyze Data File",
+        description="Analyzes a sample of the file to suggest model mappings and validation rules without starting an import job.",
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {"file": {"type": "string", "format": "binary"}},
+            }
+        },
+        responses={200: OpenApiResponse(description="Inferred configuration results.")},
+    )
+    @action(detail=False, methods=["post"], url_path="analyze")
+    def analyze_data(self, request, *args, **kwargs):
+        """Endpoint for zero-config schema inference."""
+        file = request.FILES.get("file")
+        if not file:
+            return Response({"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from import_engine.services.auto_config_service import AutoConfigService
+        result = AutoConfigService.analyze_file(file, file.name)
+        
+        if "error" in result:
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+        return Response(result, status=status.HTTP_200_OK)
+
+    @extend_schema(
         summary="Upload Data File",
         description="Securely uploads a CSV/Excel file for the target Model. Scans for viruses and de-duplicates identical pending files.",
         request={

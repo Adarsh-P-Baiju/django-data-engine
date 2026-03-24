@@ -77,6 +77,7 @@ def process_chunk(self, chunk_id):
         resolver = FKResolver(config)
         logs_to_create = []
         instances_to_create = []
+        staging_to_create = []
         processed_count = 0
         empty_count = 0
 
@@ -126,7 +127,19 @@ def process_chunk(self, chunk_id):
                         is_fatal=True,
                     )
                 )
+                from import_engine.domain.models import ImportStaging
+                staging_to_create.append(
+                    ImportStaging(
+                        job=job,
+                        row_number=row_idx,
+                        raw_data=row_dict,
+                        mapped_data=cleaned_data,
+                        errors=errors
+                    )
+                )
             else:
+                if hasattr(config.model, "import_job"):
+                    cleaned_data["import_job"] = job
                 instances_to_create.append(config.model(**cleaned_data))
 
         # 4. Atomic Persistence
@@ -147,6 +160,21 @@ def process_chunk(self, chunk_id):
 
             if logs_to_create:
                 ImportLog.objects.bulk_create(logs_to_create)
+            
+            if staging_to_create:
+                # Store failed rows in staging for interactive review
+                ImportStaging.objects.bulk_create(staging_to_create, ignore_conflicts=True)
+
+            # Sanity Check (Early Abort) for first chunk
+            total_rows = len(instances_to_create) + len(staging_to_create)
+            if total_rows > 0 and chunk.chunk_index == 0:
+                failure_rate = len(staging_to_create) / total_rows
+                threshold = getattr(config, "abort_threshold", 0.8)
+                if failure_rate > threshold:
+                    job.status = ImportJob.Status.FAILED
+                    job.error_message = f"Sanity Check Failed: {int(failure_rate*100)}% failure rate. Aborting."
+                    job.save(update_fields=["status", "error_message"])
+                    raise ValueError(job.error_message)
 
             if empty_count > 0:
                 ImportJob.objects.filter(id=job.id).update(total_rows=F("total_rows") - empty_count)

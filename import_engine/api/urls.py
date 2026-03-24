@@ -1,6 +1,10 @@
 from django.urls import path
+from rest_framework.routers import DefaultRouter
 from .views.upload_views import ModelImportViewSet
-from .views.manage_views import JobStatusView, JobChunksView, JobLogsView
+from .views.manage_views import ImportJobViewSet
+
+router = DefaultRouter()
+router.register(r"jobs", ImportJobViewSet, basename="job")
 
 urlpatterns = [
     path(
@@ -13,7 +17,4 @@ urlpatterns = [
         ModelImportViewSet.as_view({"post": "import_data"}),
         name="import_upload",
     ),
-    path("jobs/<uuid:job_id>/status/", JobStatusView.as_view(), name="job_status"),
-    path("jobs/<uuid:job_id>/chunks/", JobChunksView.as_view(), name="job_chunks"),
-    path("jobs/<uuid:job_id>/logs/", JobLogsView.as_view(), name="job_logs"),
-]
+] + router.urls
