@@ -1,0 +1,62 @@
+import os
+import logging
+
+from django.db import transaction
+from import_engine.domain.models import ImportJob, ImportChunk
+from import_engine.parsing.csv_adapter import CSVAdapter
+from import_engine.parsing.excel_adapter import ExcelAdapter
+from import_engine.domain.config_registry import get_config
+from import_engine.services.header_mapper import generate_fuzzy_mapping
+
+logger = logging.getLogger(__name__)
+
+@transaction.atomic
+def generate_chunks_for_job(job_id: str, chunk_size: int = 1000) -> int:
+    """
+    Reads the file using streaming adapters and generates ImportChunk records.
+    Returns the total number of chunks created.
+    """
+    job = ImportJob.objects.select_for_update().get(id=job_id)
+    file_obj = job.file.open("rb")
+    
+    ext = os.path.splitext(job.original_filename)[1].lower()
+    adapter = None
+    
+    try:
+        if ext == ".csv":
+            adapter = CSVAdapter(file_obj)
+        elif ext in [".xlsx", ".xls"]:
+            adapter = ExcelAdapter(file_obj)
+        else:
+            raise ValueError(f"Unsupported extension {ext}")
+
+        config = get_config(job.model_name)
+        if config:
+            raw_headers = adapter.get_headers()
+            job.field_mapping = generate_fuzzy_mapping(raw_headers, config.fields)
+            job.save(update_fields=["field_mapping"])
+            logger.info(f"Chunk Generator: Generated header mapping for Job {job.id}")
+
+        chunk_index = 0
+        for _ in adapter.chunked_read(chunk_size=chunk_size):
+            start_row = (chunk_index * chunk_size) + 1
+            end_row = start_row + chunk_size - 1
+            
+            ImportChunk.objects.create(
+                job=job,
+                chunk_index=chunk_index,
+                start_row=start_row,
+                end_row=end_row,
+                status=ImportChunk.Status.PENDING,
+            )
+            chunk_index += 1
+            
+        job.total_rows = chunk_index * chunk_size
+        job.save(update_fields=["total_rows"])
+        
+        return chunk_index
+
+    finally:
+        if adapter:
+            adapter.close()
+        file_obj.close()

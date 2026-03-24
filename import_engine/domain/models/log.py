@@ -17,5 +17,8 @@ class ImportLog(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        unique_together = ("job", "row_number")
+
     def __str__(self):
         return f"Log for row {self.row_number} (Job {self.job.id})"

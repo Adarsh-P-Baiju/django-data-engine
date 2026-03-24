@@ -19,7 +19,7 @@ class ImportJob(models.Model):
     file_fingerprint = models.CharField(max_length=64, db_index=True)
 
     status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.PENDING
+        max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True
     )
     total_rows = models.IntegerField(default=0)
     processed_rows = models.IntegerField(default=0)
@@ -27,7 +27,7 @@ class ImportJob(models.Model):
     failure_count = models.IntegerField(default=0)
 
     field_mapping = models.JSONField(default=dict, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     error_message = models.TextField(blank=True, null=True)
