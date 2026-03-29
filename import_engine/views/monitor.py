@@ -4,8 +4,10 @@ from django.views.generic import TemplateView
 from django.http import HttpResponse, Http404
 from django.conf import settings
 
+
 class TestReportListView(TemplateView):
     """View for browsing generated diagnostic reports."""
+
     template_name = "import_engine/report_list.html"
 
     def get_context_data(self, **kwargs):
@@ -14,16 +16,20 @@ class TestReportListView(TemplateView):
         reports = []
         if os.path.exists(report_dir):
             reports = [f for f in os.listdir(report_dir) if f.endswith(".html")]
-        
+
         context["reports"] = sorted(reports, reverse=True)
         return context
 
+
 class TestReportDetailView(View):
     """Directly renders a diagnostic report for a specific test run."""
+
     def get(self, request, report_name):
-        report_path = os.path.join(settings.BASE_DIR, "import_engine/static/reports", report_name)
+        report_path = os.path.join(
+            settings.BASE_DIR, "import_engine/static/reports", report_name
+        )
         if not os.path.exists(report_path):
             raise Http404("Diagnostic report not found.")
-            
+
         with open(report_path, "r") as f:
             return HttpResponse(f.read(), content_type="text/html")

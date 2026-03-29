@@ -7,6 +7,7 @@ from import_engine.domain.models import ImportJob
 
 logger = logging.getLogger(__name__)
 
+
 @shared_task
 def cleanup_job(job_id):
     """Post-import cleanup for temporary artifacts."""
@@ -18,6 +19,7 @@ def cleanup_job(job_id):
     except Exception as e:
         logger.error(f"Cleanup Failed for Job {job_id}: {e}")
 
+
 @shared_task
 def recover_stale_uploads():
     """
@@ -25,24 +27,39 @@ def recover_stale_uploads():
     Self-healing mechanism for worker crashes.
     """
     logger.info("Starting recovery scan for stale uploads...")
-    
+
     upload_dir = "/tmp/uploads"
     if not os.path.exists(upload_dir):
         return
 
     for filename in os.listdir(upload_dir):
         file_path = os.path.join(upload_dir, filename)
-        
+
         # Check if file is older than 5 minutes (to avoid race with active uploads)
-        if (timezone.now() - timezone.datetime.fromtimestamp(os.path.getmtime(file_path), tz=timezone.utc)) < timedelta(minutes=5):
+        if (
+            timezone.now()
+            - timezone.datetime.fromtimestamp(
+                os.path.getmtime(file_path), tz=timezone.utc
+            )
+        ) < timedelta(minutes=5):
             continue
 
         # Look for a job with this local_path
-        job = ImportJob.objects.filter(local_path=file_path, status=ImportJob.Status.PENDING).first()
-        
+        job = ImportJob.objects.filter(
+            local_path=file_path, status=ImportJob.Status.PENDING
+        ).first()
+
         if job:
             from import_engine.tasks.security_tasks import security_scan_task
-            logger.info({"event": "recovery_dispatch", "job_id": str(job.id), "file": file_path, "status": job.status})
+
+            logger.info(
+                {
+                    "event": "recovery_dispatch",
+                    "job_id": str(job.id),
+                    "file": file_path,
+                    "status": job.status,
+                }
+            )
             security_scan_task.apply_async(args=[job.id], queue="heavy_tasks")
         else:
             # No pending job needs this? Orphan or already handled (moved to MinIO)

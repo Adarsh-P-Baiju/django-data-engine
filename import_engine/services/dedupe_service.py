@@ -1,6 +1,7 @@
 import hashlib
 import logging
 from django.conf import settings
+
 try:
     import redis
 except ImportError:
@@ -8,13 +9,14 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+
 class DedupeService:
     """Redis Bloom Filter for row-level deduplication."""
-    
+
     # Configuration: 1M items with 0.1% error rate is ~1.5MB of Redis RAM
     BLOOM_SIZE = 10**7  # 10M bits
     HASH_COUNT = 7
-    
+
     def __init__(self, model_name: str):
         self.model_name = model_name
         self.redis_client = self._get_client()
@@ -45,21 +47,21 @@ class DedupeService:
         """
         if not self.redis_client:
             return False
-            
+
         hashes = self._get_hashes(business_key)
-        
+
         # Check all bits
         pipe = self.redis_client.pipeline()
         for h in hashes:
             pipe.getbit(self.key, h)
         results = pipe.execute()
-        
+
         # If any bit is 0, it is DEFINITELY NOT a duplicate
         if any(not b for b in results):
             # Mark it as seen
             self._mark_as_seen(hashes)
             return False
-            
+
         # If all bits are 1, it is PROBABLY a duplicate
         logger.info(f"DedupeService: Probable duplicate detected for {business_key}")
         return True

@@ -6,11 +6,13 @@ from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
+
 class DSLValidator:
     """
     Advanced, modular Validation DSL Engine.
     Supports atomic rules, parameterized rules, and row-aware cross-field validation.
     """
+
     def __init__(self, field_name: str, rules: List[str], config: Any):
         self.field_name = field_name
         self.rules = rules
@@ -25,7 +27,7 @@ class DSLValidator:
             # 1. Handle "required" as a special case for empty values
             if rule_str == "required" and (value is None or str(value).strip() == ""):
                 raise ValidationError(f"Field '{self.field_name}' is required.")
-            
+
             if value is None or str(value).strip() == "":
                 continue
 
@@ -41,11 +43,12 @@ class DSLValidator:
             elif rule_name == "encrypt":
                 # Regulatory encryption
                 from import_engine.services.encryption_service import EncryptionService
+
                 value = EncryptionService.encrypt(value)
             else:
                 # Fallback to simple regex-based common rules
                 self._handle_common_rules(rule_name, value)
-        
+
         return value
 
     def _rule_min(self, value, params, row_data):
@@ -73,7 +76,7 @@ class DSLValidator:
         other_val = row_data.get(params)
         if not other_val:
             return
-        
+
         try:
             current_date = self._parse_date(value)
             other_date = self._parse_date(other_val)
@@ -100,7 +103,10 @@ class DSLValidator:
                 continue
         raise ValidationError("Invalid date format. Use YYYY-MM-DD or DD/MM/YYYY.")
 
-def validate_row(config, row_data: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, str]]:
+
+def validate_row(
+    config, row_data: Dict[str, Any]
+) -> Tuple[Dict[str, Any], Dict[str, str]]:
     """
     Validates a complete row using the configured DSL fields and rules.
     Returns (cleaned_data, error_dict).
@@ -121,7 +127,7 @@ def validate_row(config, row_data: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict
 
         val = row_data.get(f_name)
         validator = DSLValidator(f_name, rules, config)
-        
+
         try:
             cleaned[f_name] = validator.validate(val, row_data)
         except ValidationError as e:

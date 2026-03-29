@@ -7,6 +7,7 @@ from import_engine.services.security_service import VirusScanner
 
 logger = logging.getLogger(__name__)
 
+
 @shared_task(bind=True, max_retries=3)
 def security_scan_task(self, job_id):
     """
@@ -14,7 +15,7 @@ def security_scan_task(self, job_id):
     """
     try:
         job = ImportJob.objects.get(id=job_id)
-        
+
         if not job.local_path or not os.path.exists(job.local_path):
             job.status = ImportJob.Status.FAILED
             job.error_message = "Staged file not found for scanning."
@@ -34,10 +35,14 @@ def security_scan_task(self, job_id):
             except Exception as e:
                 # Handle connection errors based on fail-safe setting
                 if getattr(settings, "CLAMAV_FAIL_SAFE", True):
-                    logger.critical(f"ClamAV Connection Failed for Job {job_id}. FAIL-SAFE ENABLED: Passing file.")
+                    logger.critical(
+                        f"ClamAV Connection Failed for Job {job_id}. FAIL-SAFE ENABLED: Passing file."
+                    )
                     is_clean, virus_name = True, None
                 else:
-                    logger.error(f"ClamAV Connection Failed for Job {job_id}. FAIL-SAFE DISABLED: Failing job.")
+                    logger.error(
+                        f"ClamAV Connection Failed for Job {job_id}. FAIL-SAFE DISABLED: Failing job."
+                    )
                     raise RuntimeError(f"Could not connect to ClamAV: {e}")
 
         if not is_clean:
@@ -45,7 +50,9 @@ def security_scan_task(self, job_id):
             job.status_message = f"Infected: {virus_name}"
             job.error_message = f"Security Alert: File infected with {virus_name}."
             job.save(update_fields=["status", "status_message", "error_message"])
-            logger.warning({"event": "scan_infected", "job_id": str(job_id), "virus": virus_name})
+            logger.warning(
+                {"event": "scan_infected", "job_id": str(job_id), "virus": virus_name}
+            )
             if os.path.exists(job.local_path):
                 os.remove(job.local_path)
             return
@@ -67,6 +74,7 @@ def security_scan_task(self, job_id):
 
         # 4. Kick off Orchestration
         from import_engine.tasks.processing_tasks import generate_chunks_task
+
         generate_chunks_task.apply_async(args=[job.id], queue="heavy_tasks")
 
         # Cleanup local file after move

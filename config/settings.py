@@ -163,7 +163,9 @@ CELERY_RESULT_SERIALIZER = "json"
 
 CELERY_TASK_ROUTES = {
     "import_engine.tasks.security_tasks.security_scan_task": {"queue": "heavy_tasks"},
-    "import_engine.tasks.processing_tasks.generate_chunks_task": {"queue": "heavy_tasks"},
+    "import_engine.tasks.processing_tasks.generate_chunks_task": {
+        "queue": "heavy_tasks"
+    },
     "import_engine.tasks.processing_tasks.process_chunk": {"queue": "light_tasks"},
     "import_engine.tasks.cleanup_tasks.cleanup_job": {"queue": "light_tasks"},
     "import_engine.tasks.cleanup_tasks.recover_stale_uploads": {"queue": "light_tasks"},
@@ -174,7 +176,7 @@ IMPORT_ENGINE_REGION_QUEUES = {
     "US": "heavy_tasks_us",
     "EU": "heavy_tasks_eu",
     "ASIA": "heavy_tasks_asia",
-    "DEFAULT": "heavy_tasks"
+    "DEFAULT": "heavy_tasks",
 }
 
 

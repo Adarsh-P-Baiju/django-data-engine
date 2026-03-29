@@ -4,15 +4,16 @@ from import_engine.domain.models import ImportJob, ImportLog
 
 logger = logging.getLogger(__name__)
 
+
 class DiagnosticService:
     """Analyzes completed import jobs to generate performance summaries."""
-    
+
     @classmethod
     def generate_report(cls, job_id: str) -> dict:
         """Generates a performance and error profile for a job."""
         try:
             job = ImportJob.objects.get(id=job_id)
-            
+
             # 1. Error Analysis (Top 5 failure reasons)
             error_summary = (
                 ImportLog.objects.filter(job=job)
@@ -20,12 +21,12 @@ class DiagnosticService:
                 .annotate(count=Count("id"))
                 .order_by("-count")[:5]
             )
-            
+
             # 2. Performance Summary
             duration = 0
             if job.started_at and job.finished_at:
                 duration = (job.finished_at - job.started_at).total_seconds()
-            
+
             report = {
                 "job_id": str(job.id),
                 "model": job.model_name,
@@ -38,15 +39,19 @@ class DiagnosticService:
                     "avg_throughput_rows_sec": round(job.throughput_rows_sec, 2),
                 },
                 "top_errors": [
-                    {"reason": list(err["errors"].values())[0] if isinstance(err["errors"], dict) else str(err["errors"]), 
-                     "count": err["count"]}
+                    {
+                        "reason": list(err["errors"].values())[0]
+                        if isinstance(err["errors"], dict)
+                        else str(err["errors"]),
+                        "count": err["count"],
+                    }
                     for err in error_summary
-                ]
+                ],
             }
-            
+
             logger.info(f"Diagnostic Report generated for Job {job.id}")
             return report
-            
+
         except ImportError as e:
             logger.error(f"Failed to generate diagnostic report for {job_id}: {e}")
             return {"error": "Reporting failed"}
@@ -59,19 +64,24 @@ class DiagnosticService:
         """Helper to create a human-readable summary for the admin/logs."""
         if "error" in report:
             return "## ❌ Diagnostic Report Failed"
-            
+
         m = report["metrics"]
-        errs = "\n".join([f"- **{e['count']}x**: {e['reason']}" for e in report.get("top_errors", [])])
-        
+        errs = "\n".join(
+            [
+                f"- **{e['count']}x**: {e['reason']}"
+                for e in report.get("top_errors", [])
+            ]
+        )
+
         return f"""
-# 📋 Import Diagnostic Report: {report['job_id']}
+# 📋 Import Diagnostic Report: {report["job_id"]}
 
 ### 📈 Performance Summary
-- **Status**: {report['status']}
-- **Total Rows**: {m['total_rows']}
-- **Success Rate**: {round((m['success']/m['total_rows'])*100, 2) if m['total_rows'] > 0 else 0}%
-- **Avg Speed**: {m['avg_throughput_rows_sec']} rows/sec
-- **Total Duration**: {m['duration_seconds']}s
+- **Status**: {report["status"]}
+- **Total Rows**: {m["total_rows"]}
+- **Success Rate**: {round((m["success"] / m["total_rows"]) * 100, 2) if m["total_rows"] > 0 else 0}%
+- **Avg Speed**: {m["avg_throughput_rows_sec"]} rows/sec
+- **Total Duration**: {m["duration_seconds"]}s
 
 ### 🚨 Top Failure Reasons
 {errs if errs else "No errors detected."}

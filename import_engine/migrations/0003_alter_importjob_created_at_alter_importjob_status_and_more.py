@@ -4,24 +4,36 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('import_engine', '0002_importjob_field_mapping'),
+        ("import_engine", "0002_importjob_field_mapping"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='importjob',
-            name='created_at',
+            model_name="importjob",
+            name="created_at",
             field=models.DateTimeField(auto_now_add=True, db_index=True),
         ),
         migrations.AlterField(
-            model_name='importjob',
-            name='status',
-            field=models.CharField(choices=[('PENDING', 'Pending'), ('SCANNING', 'Scanning'), ('CLEAN', 'Clean'), ('INFECTED', 'Infected'), ('PROCESSING', 'Processing'), ('COMPLETED', 'Completed'), ('FAILED', 'Failed')], db_index=True, default='PENDING', max_length=20),
+            model_name="importjob",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("PENDING", "Pending"),
+                    ("SCANNING", "Scanning"),
+                    ("CLEAN", "Clean"),
+                    ("INFECTED", "Infected"),
+                    ("PROCESSING", "Processing"),
+                    ("COMPLETED", "Completed"),
+                    ("FAILED", "Failed"),
+                ],
+                db_index=True,
+                default="PENDING",
+                max_length=20,
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='importlog',
-            unique_together={('job', 'row_number')},
+            name="importlog",
+            unique_together={("job", "row_number")},
         ),
     ]

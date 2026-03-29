@@ -16,7 +16,9 @@ class CSVAdapter(BaseParserAdapter):
                 self.source.seek(0)
                 if isinstance(preview, bytes):
                     # It's binary, wrap it
-                    self.file_obj = io.TextIOWrapper(self.source, encoding="utf-8-sig", newline="")
+                    self.file_obj = io.TextIOWrapper(
+                        self.source, encoding="utf-8-sig", newline=""
+                    )
                 else:
                     # It's already text (or something else we'll try to use)
                     self.file_obj = self.source

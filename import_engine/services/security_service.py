@@ -5,10 +5,12 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+
 class VirusScanner:
     """
     Advanced VirusScanner with connection lifecycle management.
     """
+
     def __init__(self):
         self.host = getattr(settings, "CLAMAV_HOST", "clamav")
         self.port = int(getattr(settings, "CLAMAV_PORT", 3310))
@@ -37,7 +39,7 @@ class VirusScanner:
             result = scanner.scan_file(file_path)
             if result is None:
                 return True, None
-            
+
             virus_name = result.get(file_path, ("", "Unknown Virus"))[1]
             return False, virus_name
         except Exception as e:
@@ -50,6 +52,7 @@ class VirusScanner:
             # pyclamd doesn't have an explicit close, but we can clear the reference
             # For persistent connections, we'd need to handle this more robustly
             self._scanner = None
+
 
 def mask_pii(row_dict: Dict[str, Any], config: Any) -> Dict[str, Any]:
     """

@@ -14,6 +14,7 @@ from import_engine.api.file_validators import (
 
 logger = logging.getLogger(__name__)
 
+
 def compute_file_fingerprint(file_path: str) -> str:
     """Computes SHA-256 hash of a file for identity verification."""
     sha256_hash = hashlib.sha256()
@@ -22,6 +23,7 @@ def compute_file_fingerprint(file_path: str) -> str:
         for byte_block in iter(lambda: f.read(4096), b""):
             sha256_hash.update(byte_block)
     return sha256_hash.hexdigest()
+
 
 def handle_upload(model_name: str, uploaded_file) -> ImportJob:
     """Async-ready upload handler with shared volume streaming."""
@@ -72,14 +74,17 @@ def handle_upload(model_name: str, uploaded_file) -> ImportJob:
                 file_fingerprint=fingerprint,
                 local_path=temp_path,
                 status=ImportJob.Status.PENDING,
-                status_message=f"File staged in temporary storage: {temp_path}"
+                status_message=f"File staged in temporary storage: {temp_path}",
             )
 
         # 5. Dispatch to Async Scanning
         from import_engine.tasks.security_tasks import security_scan_task
+
         security_scan_task.apply_async(args=[job.id], queue="heavy_tasks")
 
-        logger.info(f"Upload Staged: Created Job {job.id} at {temp_path}. Background scan started.")
+        logger.info(
+            f"Upload Staged: Created Job {job.id} at {temp_path}. Background scan started."
+        )
         return job
 
     except Exception as e:
@@ -87,6 +92,7 @@ def handle_upload(model_name: str, uploaded_file) -> ImportJob:
         if os.path.exists(temp_path):
             os.remove(temp_path)
         raise
+
 
 def handle_streaming_upload(model_name: str, request) -> ImportJob:
     """Reads directly from the request stream for massive datasets."""
@@ -118,12 +124,13 @@ def handle_streaming_upload(model_name: str, request) -> ImportJob:
                 file_fingerprint=fingerprint,
                 local_path=temp_path,
                 status=ImportJob.Status.PENDING,
-                status_message=f"Streamed file staged: {temp_path}"
+                status_message=f"Streamed file staged: {temp_path}",
             )
 
         from import_engine.tasks.security_tasks import security_scan_task
+
         security_scan_task.apply_async(args=[job.id], queue="heavy_tasks")
-        
+
         return job
 
     except Exception:

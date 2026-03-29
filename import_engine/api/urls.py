@@ -20,7 +20,6 @@ urlpatterns = [
         TestReportDetailView.as_view(),
         name="monitor-report-detail",
     ),
-    
     # Import Endpoints
     path(
         "imports/<str:model_name>/template/",

@@ -5,29 +5,52 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('import_engine', '0003_alter_importjob_created_at_alter_importjob_status_and_more'),
+        (
+            "import_engine",
+            "0003_alter_importjob_created_at_alter_importjob_status_and_more",
+        ),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ImportStaging',
+            name="ImportStaging",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('row_number', models.IntegerField()),
-                ('raw_data', models.JSONField(help_text='Original row data from the file.')),
-                ('mapped_data', models.JSONField(help_text='Data after header mapping applied.')),
-                ('errors', models.JSONField(help_text='Validation error messages.')),
-                ('is_resolved', models.BooleanField(default=False)),
-                ('resolved_at', models.DateTimeField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('job', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='staging_rows', to='import_engine.importjob')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("row_number", models.IntegerField()),
+                (
+                    "raw_data",
+                    models.JSONField(help_text="Original row data from the file."),
+                ),
+                (
+                    "mapped_data",
+                    models.JSONField(help_text="Data after header mapping applied."),
+                ),
+                ("errors", models.JSONField(help_text="Validation error messages.")),
+                ("is_resolved", models.BooleanField(default=False)),
+                ("resolved_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "job",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="staging_rows",
+                        to="import_engine.importjob",
+                    ),
+                ),
             ],
             options={
-                'verbose_name_plural': 'Import Staging Rows',
-                'unique_together': {('job', 'row_number')},
+                "verbose_name_plural": "Import Staging Rows",
+                "unique_together": {("job", "row_number")},
             },
         ),
     ]

@@ -5,6 +5,7 @@ import unittest
 import json
 import logging
 from io import StringIO
+
 try:
     import psutil
 except ImportError:
@@ -13,19 +14,24 @@ from django.test.runner import DiscoverRunner
 from django.conf import settings
 from django.db import connection
 
+
 class ForensicLogHandler(logging.Handler):
     def __init__(self):
         super().__init__()
         self.buffer = StringIO()
+
     def emit(self, record):
         self.buffer.write(self.format(record) + "\n")
+
     def get_and_reset(self):
         val = self.buffer.getvalue()
         self.buffer = StringIO()
         return val
 
+
 class PremiumTestResult(unittest.TextTestResult):
     """Generates detailed technical summaries for each test scenario."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.results_data = []
@@ -33,7 +39,7 @@ class PremiumTestResult(unittest.TextTestResult):
         self.start_timer = time.time()
         self.process = psutil.Process(os.getpid()) if psutil else None
         self.log_stream = ForensicLogHandler()
-        self.log_stream.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+        self.log_stream.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
         logging.getLogger().addHandler(self.log_stream)
 
     def generate_narrative(self, test_name, params, err):
@@ -42,108 +48,128 @@ class PremiumTestResult(unittest.TextTestResult):
         if "rules" in params:
             objective = f"Verifying the DSL rule chain: {params['rules']}."
         elif "payload" in params:
-            objective = f"Testing system resilience against malicious vector: {params['id']}."
-        
-        logic_trace = "The Engine successfully processed the data vector and verified integrity."
+            objective = (
+                f"Testing system resilience against malicious vector: {params['id']}."
+            )
+
+        logic_trace = (
+            "The Engine successfully processed the data vector and verified integrity."
+        )
         if err:
             logic_trace = "The Engine identified a failure during processing."
-        
+
         outcome = "SUCCESS: Integrity verified."
         if err:
             outcome = f"FAILURE: {str(err).split('\\n')[0]}"
-            
-        return {
-            "objective": objective,
-            "logic": logic_trace,
-            "outcome": outcome
-        }
+
+        return {"objective": objective, "logic": logic_trace, "outcome": outcome}
 
     def addSubTest(self, test, subtest, err):
         super().addSubTest(test, subtest, err)
         self.subtest_count += 1
-        
+
         status = "PASSED" if err is None else "FAILED"
         mem_mb = self.process.memory_info().rss / (1024 * 1024) if self.process else 0
         logs = self.log_stream.get_and_reset()
         queries = connection.queries
         connection.queries_log.clear()
 
-        raw_params = getattr(subtest, 'params', {})
-        params = dict(raw_params) if hasattr(raw_params, 'items') else {"val": str(raw_params)}
-        
+        raw_params = getattr(subtest, "params", {})
+        params = (
+            dict(raw_params)
+            if hasattr(raw_params, "items")
+            else {"val": str(raw_params)}
+        )
+
         # Generate the technical summary
         story = self.generate_narrative(test._testMethodName, params, err)
-        
-        self.results_data.append({
-            "id": f"{test._testMethodName} #{self.subtest_count}",
-            "st": status,
-            "meta": params,
-            "story": story,
-            "logs": logs if logs else "STREAM_OPTIMAL",
-            "sql_count": len(queries),
-            "queries": [q['sql'] for q in queries[-5:]],
-            "err": str(err) if err else None,
-            "lat": round(time.time() - self.start_timer, 4),
-            "ram": round(mem_mb, 2)
-        })
+
+        self.results_data.append(
+            {
+                "id": f"{test._testMethodName} #{self.subtest_count}",
+                "st": status,
+                "meta": params,
+                "story": story,
+                "logs": logs if logs else "STREAM_OPTIMAL",
+                "sql_count": len(queries),
+                "queries": [q["sql"] for q in queries[-5:]],
+                "err": str(err) if err else None,
+                "lat": round(time.time() - self.start_timer, 4),
+                "ram": round(mem_mb, 2),
+            }
+        )
 
     def addSuccess(self, test):
         super().addSuccess(test)
-        self.results_data.append({
-            "id": str(test),
-            "st": "PASSED",
-            "meta": {"type": "CORE_SYSTEM_HEALTH"},
-            "story": {
-                "objective": "Verifying global system health and core component alignment.",
-                "logic": "The Engine performed a validation of all registered services.",
-                "outcome": "HEALTHY: All systems reporting operational."
-            },
-            "logs": "CORE_STREAM_OPTIMAL",
-            "sql_count": 0,
-            "queries": [],
-            "err": None,
-            "lat": round(time.time() - self.start_timer, 4),
-            "ram": round(self.process.memory_info().rss / (1024 * 1024) if self.process else 0, 2)
-        })
+        self.results_data.append(
+            {
+                "id": str(test),
+                "st": "PASSED",
+                "meta": {"type": "CORE_SYSTEM_HEALTH"},
+                "story": {
+                    "objective": "Verifying global system health and core component alignment.",
+                    "logic": "The Engine performed a validation of all registered services.",
+                    "outcome": "HEALTHY: All systems reporting operational.",
+                },
+                "logs": "CORE_STREAM_OPTIMAL",
+                "sql_count": 0,
+                "queries": [],
+                "err": None,
+                "lat": round(time.time() - self.start_timer, 4),
+                "ram": round(
+                    self.process.memory_info().rss / (1024 * 1024)
+                    if self.process
+                    else 0,
+                    2,
+                ),
+            }
+        )
+
 
 class PremiumReportRunner(DiscoverRunner):
     """Custom test runner with narrative diagnostic reporting."""
+
     def get_resultclass(self):
         return PremiumTestResult
 
     def run_suite(self, suite, **kwargs):
         self.start_time = time.time()
-        settings.DEBUG = True 
+        settings.DEBUG = True
         result = super().run_suite(suite, **kwargs)
         self.finalize_report(result)
         return result
 
     def finalize_report(self, result):
         total_duration = time.time() - self.start_time
-        peak_mem = psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024) if psutil else 0
-        
+        peak_mem = (
+            psutil.Process(os.getpid()).memory_info().rss / (1024 * 1024)
+            if psutil
+            else 0
+        )
+
         stats = {
             "total": result.testsRun + result.subtest_count,
-            "passed": (result.testsRun + result.subtest_count) - (len(result.errors) + len(result.failures)),
+            "passed": (result.testsRun + result.subtest_count)
+            - (len(result.errors) + len(result.failures)),
             "failed": len(result.errors) + len(result.failures),
             "duration": round(total_duration, 4),
             "peak_memory": round(peak_mem, 2),
-            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
 
         report_dir = os.path.join(settings.BASE_DIR, "import_engine/static/reports")
         os.makedirs(report_dir, exist_ok=True)
         report_path = os.path.join(report_dir, "latest_test_report.html")
-        
+
         html_content = self.render_html_report(stats, result.results_data)
         with open(report_path, "w") as f:
             f.write(html_content)
-        
+
         print(f"\n[DIAGNOSTIC] Report Generated: {report_path}")
 
     def render_html_report(self, stats, results):
         results_json = json.dumps(results)
-        
+
         return f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -239,12 +265,12 @@ class PremiumReportRunner(DiscoverRunner):
     <div class="glass header">
         <div>
             <h1>Import Engine <span style="font-weight: 300; opacity: 0.5">Diagnostics</span></h1>
-            <div class="mono" style="font-size: 0.8rem; margin-top: 10px; opacity: 0.4">TECHNICAL NARRATIVES | {stats['timestamp']}</div>
+            <div class="mono" style="font-size: 0.8rem; margin-top: 10px; opacity: 0.4">TECHNICAL NARRATIVES | {stats["timestamp"]}</div>
         </div>
         <div class="stat-grid">
-            <div class="stat-item"><div class="stat-val">{stats['total']:,}</div><div class="stat-lbl">Validated Scenarios</div></div>
-            <div class="stat-item"><div class="stat-val" style="color:var(--secondary)">{stats['duration']}s</div><div class="stat-lbl">Execution Pulsar</div></div>
-            <div class="stat-item"><div class="stat-val" style="color:var(--primary)">{stats['peak_memory']}MB</div><div class="stat-lbl">Memory Flux</div></div>
+            <div class="stat-item"><div class="stat-val">{stats["total"]:,}</div><div class="stat-lbl">Validated Scenarios</div></div>
+            <div class="stat-item"><div class="stat-val" style="color:var(--secondary)">{stats["duration"]}s</div><div class="stat-lbl">Execution Pulsar</div></div>
+            <div class="stat-item"><div class="stat-val" style="color:var(--primary)">{stats["peak_memory"]}MB</div><div class="stat-lbl">Memory Flux</div></div>
         </div>
     </div>
 

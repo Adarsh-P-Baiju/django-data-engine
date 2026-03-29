@@ -6,14 +6,17 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+
 class AutoConfigService:
     """
     Intelligent Schema Inference Engine.
     Analyzes raw file data to automatically suggest mappings and validation rules.
     """
-    
+
     @classmethod
-    def analyze_file(cls, file_obj, original_filename: str, sample_size: int = 100) -> Dict[str, Any]:
+    def analyze_file(
+        cls, file_obj, original_filename: str, sample_size: int = 100
+    ) -> Dict[str, Any]:
         """
         Reads a sample of the file and returns an inferred configuration.
         """
@@ -22,7 +25,7 @@ class AutoConfigService:
 
         ext = os.path.splitext(original_filename)[1].lower()
         adapter = None
-        
+
         try:
             if ext == ".csv":
                 adapter = CSVAdapter(file_obj)
@@ -44,22 +47,26 @@ class AutoConfigService:
             for header in headers:
                 if not header:
                     continue
-                
+
                 # Analyze values for this header across sample
-                values = [row.get(header) for row in sample_rows if row.get(header) is not None]
+                values = [
+                    row.get(header)
+                    for row in sample_rows
+                    if row.get(header) is not None
+                ]
                 field_type, suggestions = cls._infer_field_metadata(header, values)
-                
+
                 inferred_fields[header] = {
                     "label": str(header),
                     "type": field_type,
                     "rules": suggestions,
-                    "is_pii": cls._is_likely_pii(header)
+                    "is_pii": cls._is_likely_pii(header),
                 }
 
             return {
                 "inferred_fields": inferred_fields,
                 "total_samples": len(sample_rows),
-                "suggested_model_name": cls._suggest_model_name(original_filename)
+                "suggested_model_name": cls._suggest_model_name(original_filename),
             }
 
         except Exception as e:
@@ -70,7 +77,9 @@ class AutoConfigService:
                 adapter.close()
 
     @classmethod
-    def _infer_field_metadata(cls, header: str, values: List[Any]) -> Tuple[str, List[str]]:
+    def _infer_field_metadata(
+        cls, header: str, values: List[Any]
+    ) -> Tuple[str, List[str]]:
         """Infers the data type and potential DSL rules for a field."""
         if not values:
             return "String", []
@@ -111,7 +120,16 @@ class AutoConfigService:
     @classmethod
     def _is_likely_pii(cls, header: str) -> bool:
         """Heuristic to detect sensitive PII fields by name."""
-        pii_keywords = {"email", "phone", "mobile", "address", "ssn", "passport", "salary", "birth"}
+        pii_keywords = {
+            "email",
+            "phone",
+            "mobile",
+            "address",
+            "ssn",
+            "passport",
+            "salary",
+            "birth",
+        }
         header_lower = str(header).lower()
         return any(k in header_lower for k in pii_keywords)
 
@@ -122,4 +140,4 @@ class AutoConfigService:
         # Remove timestamps, UUIDs, and common prefixes/suffixes
         name = re.sub(r"[_\-][0-9a-fA-F]{32}", "", name)
         name = re.sub(r"[_\-]\d{8}", "", name)
-        return name.split('_')[0].split('-')[0].capitalize()
+        return name.split("_")[0].split("-")[0].capitalize()
