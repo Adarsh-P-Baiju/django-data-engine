@@ -1,4 +1,5 @@
 import csv
+import io
 from import_engine.parsing.base_adapter import BaseParserAdapter
 
 
@@ -8,7 +9,20 @@ class CSVAdapter(BaseParserAdapter):
         if isinstance(self.source, str):
             self.file_obj = open(self.source, "r", encoding="utf-8-sig")
         else:
-            self.file_obj = self.source
+            # More robust check: try to see if it's binary
+            try:
+                # Peek at first char/byte
+                preview = self.source.read(1)
+                self.source.seek(0)
+                if isinstance(preview, bytes):
+                    # It's binary, wrap it
+                    self.file_obj = io.TextIOWrapper(self.source, encoding="utf-8-sig", newline="")
+                else:
+                    # It's already text (or something else we'll try to use)
+                    self.file_obj = self.source
+            except (AttributeError, io.UnsupportedOperation):
+                # Fallback to source if we can't peek or wrap
+                self.file_obj = self.source
 
         self.reader = csv.DictReader(self.file_obj)
 

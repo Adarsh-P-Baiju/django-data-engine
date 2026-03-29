@@ -161,10 +161,26 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 
 CELERY_TASK_ROUTES = {
-    "import_engine.tasks.processing_tasks.orchestrate_job": {"queue": "light_tasks"},
-    "import_engine.tasks.processing_tasks.process_chunk": {"queue": "heavy_tasks"},
+    "import_engine.tasks.security_tasks.security_scan_task": {"queue": "heavy_tasks"},
+    "import_engine.tasks.processing_tasks.generate_chunks_task": {"queue": "heavy_tasks"},
+    "import_engine.tasks.processing_tasks.process_chunk": {"queue": "light_tasks"},
     "import_engine.tasks.cleanup_tasks.cleanup_job": {"queue": "light_tasks"},
+    "import_engine.tasks.cleanup_tasks.recover_stale_uploads": {"queue": "light_tasks"},
 }
+
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    "recover-stale-uploads-every-minute": {
+        "task": "import_engine.tasks.cleanup_tasks.recover_stale_uploads",
+        "schedule": crontab(minute="*"),
+    },
+}
+
+# Upload Limits (10GB)
+IMPORT_MAX_FILE_SIZE_MB = 10240
+# Force disk-spilling for files larger than 2.5MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2621440
 
 # ClamAV
 CLAMAV_HOST = os.environ.get("CLAMAV_HOST", "clamav")

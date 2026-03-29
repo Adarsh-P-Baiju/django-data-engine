@@ -27,62 +27,116 @@ def compute_file_fingerprint(file_path: str) -> str:
 
 def handle_upload(model_name: str, uploaded_file) -> ImportJob:
     """
-    Ultra-advanced secure upload handler with viral scanning, 
-    SHA-256 fingerprinting, and automated de-duplication.
+    Ultra-optimized async-ready upload handler.
+    Streams directly to shared volume for background scanning and processing.
     """
-    # 1. Preliminary Validation
+    # 1. Preliminary Validation (Size & Extension)
     validate_file_size(uploaded_file)
     validate_file_extension(uploaded_file)
 
-    # 2. Secure Temporary Persistence for Scanning
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
-        for chunk in uploaded_file.chunks():
-            tmp.write(chunk)
-        temp_path = tmp.name
+    # 2. Zero-Memory Streaming to Shared Volume (/tmp/uploads)
+    os.makedirs("/tmp/uploads", exist_ok=True)
+    temp_fd, temp_path = tempfile.mkstemp(
+        dir="/tmp/uploads", prefix=f"import_{model_name}_"
+    )
+
+    import shutil
 
     try:
-        # 3. Security Scan (ClamAV)
-        with VirusScanner() as scanner:
-            is_clean, virus_name = scanner.scan_file(temp_path)
-            if not is_clean:
-                logger.warning(f"Security Alert: Infected file blocked! Virus: {virus_name}")
-                raise ValidationError(f"Security Alert: File infected with {virus_name}.")
+        with os.fdopen(temp_fd, "wb") as tmp:
+            # Use shutil.copyfileobj for efficient streaming from Django's uploaded file
+            shutil.copyfileobj(uploaded_file, tmp)
 
-        # 4. Identity Verification (Fingerprinting)
+        # Make file world-readable so ClamAV container can read it
+        os.chmod(temp_path, 0o644)
+
+        # 3. Identity Verification (Fingerprinting)
         fingerprint = compute_file_fingerprint(temp_path)
-        
-        # Check for duplicate active jobs (Pending or Processing)
+
+        # Check for duplicate active jobs
         duplicate = ImportJob.objects.filter(
             file_fingerprint=fingerprint,
-            status__in=[ImportJob.Status.PENDING, ImportJob.Status.PROCESSING]
+            status__in=[
+                ImportJob.Status.PENDING,
+                ImportJob.Status.SCANNING,
+                ImportJob.Status.CLEAN,
+                ImportJob.Status.PROCESSING,
+            ],
         ).first()
-        
+
         if duplicate:
-            logger.info(f"De-duplication: Found existing active job {duplicate.id} for the same file.")
+            logger.info(
+                f"De-duplication: Found existing job {duplicate.id} for the same file."
+            )
+            os.remove(temp_path)
             return duplicate
 
-        # 5. Atomic Job Creation and Storage Transition
+        # 4. Atomic Job Initial Creation (Staging)
         with transaction.atomic():
             job = ImportJob.objects.create(
                 model_name=model_name,
                 original_filename=uploaded_file.name,
                 file_fingerprint=fingerprint,
+                local_path=temp_path,
                 status=ImportJob.Status.PENDING,
+                status_message=f"File staged in temporary storage: {temp_path}"
             )
 
-            with open(temp_path, "rb") as clean_file:
-                # Use a unique name in storage to avoid collisions
-                random_name = f"{job.id}_{uploaded_file.name}"
-                job.file.save(random_name, ContentFile(clean_file.read()), save=True)
+        # 5. Dispatch to Async Scanning
+        from import_engine.tasks.security_tasks import security_scan_task
+        security_scan_task.apply_async(args=[job.id], queue="heavy_tasks")
 
-        # 6. Kick off Orchestration
-        from import_engine.execution_engine.orchestrator import dispatch_import_job
-        dispatch_import_job(job.id)
-        
-        logger.info(f"Upload Success: Created Job {job.id} for model {model_name}")
+        logger.info(f"Upload Staged: Created Job {job.id} at {temp_path}. Background scan started.")
         return job
 
-    finally:
-        # Guarantee cleanup of local temp file
+    except Exception as e:
+        logger.error(f"Upload Staging Failed for {model_name}: {e}")
         if os.path.exists(temp_path):
             os.remove(temp_path)
+        raise
+
+def handle_streaming_upload(model_name: str, request) -> ImportJob:
+    """
+    Reads directly from the request stream to handle 10GB+ files with zero memory spike.
+    Bypasses standard Django multipart handling for extreme efficiency.
+    """
+    os.makedirs("/tmp/uploads", exist_ok=True)
+    temp_fd, temp_path = tempfile.mkstemp(
+        dir="/tmp/uploads", prefix=f"stream_{model_name}_"
+    )
+
+    try:
+        with os.fdopen(temp_fd, "wb") as tmp:
+            django_request = getattr(request, "_request", request)
+
+            # Streaming copy from request stream to file
+            while True:
+                chunk = django_request.read(1024 * 1024)  # 1MB chunks
+                if not chunk:
+                    break
+                tmp.write(chunk)
+
+        # Make file world-readable so ClamAV container can read it
+        os.chmod(temp_path, 0o644)
+
+        fingerprint = compute_file_fingerprint(temp_path)
+
+        with transaction.atomic():
+            job = ImportJob.objects.create(
+                model_name=model_name,
+                original_filename="streamed_dataset.csv",  # fallback name
+                file_fingerprint=fingerprint,
+                local_path=temp_path,
+                status=ImportJob.Status.PENDING,
+                status_message=f"Streamed file staged: {temp_path}"
+            )
+
+        from import_engine.tasks.security_tasks import security_scan_task
+        security_scan_task.apply_async(args=[job.id], queue="heavy_tasks")
+        
+        return job
+
+    except Exception:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise

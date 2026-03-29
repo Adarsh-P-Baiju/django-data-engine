@@ -38,20 +38,45 @@ def generate_chunks_for_job(job_id: str, chunk_size: int = 1000) -> int:
             logger.info(f"Chunk Generator: Generated header mapping for Job {job.id}")
 
         chunk_index = 0
-        for _ in adapter.chunked_read(chunk_size=chunk_size):
-            start_row = (chunk_index * chunk_size) + 1
-            end_row = start_row + chunk_size - 1
+        if ext == ".csv":
+            # Fast streaming line count for 100M rows
+            adapter.file_obj.seek(0)
+            # Count lines without loading into memory
+            total_rows = sum(1 for _ in adapter.file_obj) - 1 # Subtract 1 for header
+            adapter.file_obj.seek(0)
+            # Re-read header to advance DictReader/Iterator past it
+            next(adapter.file_obj)
             
-            ImportChunk.objects.create(
-                job=job,
-                chunk_index=chunk_index,
-                start_row=start_row,
-                end_row=end_row,
-                status=ImportChunk.Status.PENDING,
-            )
-            chunk_index += 1
-            
-        job.total_rows = chunk_index * chunk_size
+            num_chunks = (total_rows + chunk_size - 1) // chunk_size
+            for idx in range(num_chunks):
+                start_row = (idx * chunk_size) + 1
+                end_row = min(start_row + chunk_size - 1, total_rows)
+                chunk = ImportChunk.objects.create(
+                    job=job,
+                    chunk_index=idx,
+                    start_row=start_row,
+                    end_row=end_row,
+                    status=ImportChunk.Status.PENDING,
+                )
+                from import_engine.tasks.processing_tasks import process_chunk
+                process_chunk.apply_async(args=[chunk.id], queue="light_tasks")
+            chunk_index = num_chunks
+        else:
+            # For Excel
+            for _ in adapter.chunked_read(chunk_size=chunk_size):
+                start_row = (chunk_index * chunk_size) + 1
+                end_row = start_row + chunk_size - 1
+                chunk = ImportChunk.objects.create(
+                    job=job,
+                    chunk_index=chunk_index,
+                    start_row=start_row,
+                    end_row=end_row,
+                    status=ImportChunk.Status.PENDING,
+                )
+                from import_engine.tasks.processing_tasks import process_chunk
+                process_chunk.apply_async(args=[chunk.id], queue="light_tasks")
+                chunk_index += 1
+            total_rows = chunk_index * chunk_size
         job.save(update_fields=["total_rows"])
         
         return chunk_index

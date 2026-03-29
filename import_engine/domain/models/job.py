@@ -14,7 +14,9 @@ class ImportJob(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     model_name = models.CharField(max_length=100)
-    file = models.FileField(upload_to="imports/pending/")
+    file = models.FileField(upload_to="imports/pending/", null=True, blank=True)
+    local_path = models.CharField(max_length=512, null=True, blank=True)
+    status_message = models.TextField(null=True, blank=True)
     original_filename = models.CharField(max_length=255)
     file_fingerprint = models.CharField(max_length=64, db_index=True)
 

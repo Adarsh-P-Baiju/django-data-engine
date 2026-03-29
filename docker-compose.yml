@@ -20,7 +20,7 @@ x-app-defaults: &app-defaults
 services:
   web:
     <<: *app-defaults
-    command: python manage.py runserver 0.0.0.0:8000
+    command: uvicorn config.asgi:application --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
 
@@ -30,7 +30,11 @@ services:
 
   celery_light:
     <<: *app-defaults
-    command: celery -A config worker -Q light_tasks --loglevel=info -n light@%h
+    command: celery -A config worker -Q light_tasks,celery --loglevel=info -n light@%h
+
+  celery_beat:
+    <<: *app-defaults
+    command: celery -A config beat --loglevel=info
 
   flower:
     <<: *app-defaults
@@ -77,6 +81,11 @@ services:
     image: clamav/clamav:latest
     ports:
       - "3310:3310"
+    environment:
+      - CLAMAV_NO_FRESHCLAM=true
+      - CLAMD_CONF_MaxScanSize=10240M
+      - CLAMD_CONF_MaxFileSize=10240M
+      - CLAMD_CONF_StreamMaxLength=10240M
     volumes:
       - uploads-tmp:/tmp/uploads
     # Wait for ClamAV to download signatures before accepting commands
