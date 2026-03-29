@@ -5,7 +5,9 @@ from django.conf import settings
 
 def validate_file_size(file):
     max_size_mb = getattr(settings, "IMPORT_MAX_FILE_SIZE_MB", 50)
-    if file.size > max_size_mb * 1024 * 1024:
+    file_size = getattr(file, "size", 0)
+
+    if file_size and file_size > max_size_mb * 1024 * 1024:
         raise ValidationError(f"File size exceeds the {max_size_mb}MB limit.")
 
 

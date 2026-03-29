@@ -75,109 +75,117 @@ def process_chunk(self, chunk_id):
             raise ValueError(f"Unsupported file format: {ext}")
 
         resolver = FKResolver(config)
-        logs_to_create = []
-        instances_to_create = []
-        staging_to_create = []
-        processed_count = 0
         empty_count = 0
 
-        # 2. Optimized Row Pipeline (Streaming)
-        # First pass: Collect data for prefetching FKs (we still need this to avoid N+1)
-        # Note: For extreme scale, we could prefetch in smaller batches inside the loop
-        row_buffer = []
-        for row_idx, row_dict in adapter.iter_rows(start_row=chunk.start_row, end_row=chunk.end_row):
+        # 2. Optimized Row Pipeline (Streaming with Sub-batches)
+        SUB_BATCH_SIZE = 500
+        
+        # Iterate over the specified range in the file
+        row_iterator = adapter.iter_rows(start_row=chunk.start_row, end_row=chunk.end_row)
+        
+        def process_batch(batch):
+            if not batch:
+                return 0, 0
+            
+            row_indices, row_dicts = zip(*batch)
+            mapped_rows = [apply_mapping(rd, job.field_mapping, config) for rd in row_dicts]
+            
+            # Batch prefetch
+            resolver.prefetch(mapped_rows)
+            
+            batch_instances = []
+            batch_staging = []
+            batch_logs = []
+            
+            for idx, (row_idx, row_dict, mapped_dict) in enumerate(zip(row_indices, row_dicts, mapped_rows)):
+                cleaned_data, errors = validate_row(config, mapped_dict)
+                
+                # Resolve Foreign Keys
+                for fk_field, f_config in resolver.fk_fields.items():
+                    val = mapped_dict.get(fk_field)
+                    if val:
+                        resolved_obj = resolver.resolve(fk_field, val)
+                        if not resolved_obj:
+                            if isinstance(f_config, dict) and f_config.get("required"):
+                                errors[fk_field] = f"Foreign key resolution failed for '{val}'"
+                            else:
+                                cleaned_data[fk_field] = None
+                        else:
+                            cleaned_data[fk_field] = resolved_obj
+
+                if errors:
+                    batch_logs.append(
+                        ImportLog(job=job, chunk=chunk, row_number=row_idx,
+                                  row_data=mask_pii(row_dict, config), errors=errors, is_fatal=True)
+                    )
+                    from import_engine.domain.models import ImportStaging
+                    batch_staging.append(
+                        ImportStaging(job=job, row_number=row_idx, raw_data=row_dict,
+                                      mapped_data=cleaned_data, errors=errors)
+                    )
+                else:
+                    if hasattr(config.model, "import_job"):
+                        cleaned_data["import_job"] = job
+                    batch_instances.append(config.model(**cleaned_data))
+
+            # Atomic Sub-batch Persistence
+            with transaction.atomic():
+                if batch_instances:
+                    conflict_res = getattr(config, "conflict_resolution", "fail")
+                    if conflict_res == "update":
+                        upsert_keys = getattr(config, "upsert_keys", [])
+                        update_fields = [f for f in config.fields.keys() if f not in upsert_keys]
+                        bulk_persist(config.model, batch_instances, upsert_fields={
+                            "unique_fields": upsert_keys, "update_fields": update_fields,
+                        })
+                    elif conflict_res == "ignore":
+                        bulk_persist(config.model, batch_instances, ignore_conflicts=True)
+                    else:
+                        bulk_persist(config.model, batch_instances)
+
+                if batch_logs:
+                    ImportLog.objects.bulk_create(batch_logs)
+                if batch_staging:
+                    from import_engine.domain.models import ImportStaging
+                    ImportStaging.objects.bulk_create(batch_staging, ignore_conflicts=True)
+            
+            return len(batch_instances), len(batch_staging)
+
+        total_success = 0
+        total_failed = 0
+        current_batch = []
+        
+        for row_idx, row_dict in row_iterator:
             if not any(v is not None and str(v).strip() != "" for v in row_dict.values()):
                 empty_count += 1
                 continue
             
-            # Internal mapping and masking
-            mapped_dict = apply_mapping(row_dict, job.field_mapping, config)
-            row_buffer.append((row_idx, mapped_dict))
-            processed_count += 1
+            current_batch.append((row_idx, row_dict))
+            if len(current_batch) >= SUB_BATCH_SIZE:
+                s, f = process_batch(current_batch)
+                total_success += s
+                total_failed += f
+                current_batch = []
+        
+        if current_batch:
+            s, f = process_batch(current_batch)
+            total_success += s
+            total_failed += f
 
-        if row_buffer:
-            resolver.prefetch([rd for _, rd in row_buffer])
-
-        # 3. Processing and Validation
-        for row_idx, row_dict in row_buffer:
-            cleaned_data, errors = validate_row(config, row_dict)
-            
-            # Resolve Foreign Keys
-            for fk_field, f_config in resolver.fk_fields.items():
-                val = row_dict.get(fk_field)
-                if val:
-                    resolved_obj = resolver.resolve(fk_field, val)
-                    if not resolved_obj:
-                        is_required = isinstance(f_config, dict) and f_config.get("required")
-                        if is_required:
-                            errors[fk_field] = f"Foreign key resolution failed for '{val}'"
-                        else:
-                            cleaned_data[fk_field] = None
-                    else:
-                        cleaned_data[fk_field] = resolved_obj
-
-            if errors:
-                logs_to_create.append(
-                    ImportLog(
-                        job=job,
-                        chunk=chunk,
-                        row_number=row_idx,
-                        row_data=mask_pii(row_dict, config),
-                        errors=errors,
-                        is_fatal=True,
-                    )
-                )
-                from import_engine.domain.models import ImportStaging
-                staging_to_create.append(
-                    ImportStaging(
-                        job=job,
-                        row_number=row_idx,
-                        raw_data=row_dict,
-                        mapped_data=cleaned_data,
-                        errors=errors
-                    )
-                )
-            else:
-                if hasattr(config.model, "import_job"):
-                    cleaned_data["import_job"] = job
-                instances_to_create.append(config.model(**cleaned_data))
-
-        # 4. Atomic Persistence
-        with transaction.atomic():
-            if instances_to_create:
-                conflict_res = getattr(config, "conflict_resolution", "fail")
-                if conflict_res == "update":
-                    upsert_keys = getattr(config, "upsert_keys", [])
-                    update_fields = [f for f in config.fields.keys() if f not in upsert_keys]
-                    bulk_persist(config.model, instances_to_create, upsert_fields={
-                        "unique_fields": upsert_keys,
-                        "update_fields": update_fields,
-                    })
-                elif conflict_res == "ignore":
-                    bulk_persist(config.model, instances_to_create, ignore_conflicts=True)
-                else:
-                    bulk_persist(config.model, instances_to_create)
-
-            if logs_to_create:
-                ImportLog.objects.bulk_create(logs_to_create)
-            
-            if staging_to_create:
-                # Store failed rows in staging for interactive review
-                ImportStaging.objects.bulk_create(staging_to_create, ignore_conflicts=True)
-
-            # Sanity Check (Early Abort) for first chunk
-            total_rows = len(instances_to_create) + len(staging_to_create)
-            if total_rows > 0 and chunk.chunk_index == 0:
-                failure_rate = len(staging_to_create) / total_rows
+        # Summary check for abort logic (only on first chunk to avoid overhead)
+        if chunk.chunk_index == 0:
+            total_processed = total_success + total_failed
+            if total_processed > 0:
+                failure_rate = total_failed / total_processed
                 threshold = getattr(config, "abort_threshold", 0.8)
                 if failure_rate > threshold:
                     job.status = ImportJob.Status.FAILED
-                    job.error_message = f"Sanity Check Failed: {int(failure_rate*100)}% failure rate. Aborting."
+                    job.error_message = f"Sanity Check Failed: {int(failure_rate*100)}% failure rate."
                     job.save(update_fields=["status", "error_message"])
                     raise ValueError(job.error_message)
 
-            if empty_count > 0:
-                ImportJob.objects.filter(id=job.id).update(total_rows=F("total_rows") - empty_count)
+        if empty_count > 0:
+            ImportJob.objects.filter(id=job.id).update(total_rows=F("total_rows") - empty_count)
 
         # 5. Finalize and Notify
         chunk.status = ImportChunk.Status.DONE
@@ -191,8 +199,8 @@ def process_chunk(self, chunk_id):
             "event": "chunk_processed",
             "job_id": str(job.id),
             "chunk_index": chunk.chunk_index,
-            "success": len(instances_to_create),
-            "failure": len(logs_to_create),
+            "success": total_success,
+            "failure": total_failed,
             "latency_ms": int(elapsed * 1000),
         }
         logger.info(metrics)

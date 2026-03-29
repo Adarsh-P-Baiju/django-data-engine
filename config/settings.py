@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 import os
 from pathlib import Path
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -168,7 +169,6 @@ CELERY_TASK_ROUTES = {
     "import_engine.tasks.cleanup_tasks.recover_stale_uploads": {"queue": "light_tasks"},
 }
 
-from celery.schedules import crontab
 
 CELERY_BEAT_SCHEDULE = {
     "recover-stale-uploads-every-minute": {

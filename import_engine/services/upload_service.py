@@ -2,13 +2,11 @@ import os
 import hashlib
 import tempfile
 import logging
+import shutil
 
-from django.core.files.base import ContentFile
-from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from import_engine.domain.models import ImportJob
-from import_engine.services.security_service import VirusScanner
 from import_engine.api.file_validators import (
     validate_file_size,
     validate_file_extension,
@@ -39,8 +37,6 @@ def handle_upload(model_name: str, uploaded_file) -> ImportJob:
     temp_fd, temp_path = tempfile.mkstemp(
         dir="/tmp/uploads", prefix=f"import_{model_name}_"
     )
-
-    import shutil
 
     try:
         with os.fdopen(temp_fd, "wb") as tmp:

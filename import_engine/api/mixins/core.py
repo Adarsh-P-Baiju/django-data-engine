@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiTypes
 
-from import_engine.services.upload_service import handle_upload
+from import_engine.services.upload_service import handle_upload, handle_streaming_upload
 from import_engine.domain.config_registry import get_config
 from import_engine.utils.template_generator import generate_template
 from import_engine.api.throttling import UploadUserRateThrottle, UploadAnonRateThrottle
@@ -102,6 +102,30 @@ class ImportMixin:
         except Exception as e:
             logger.exception(f"Import Error for {model_name}: {e}")
             return Response({"error": "Internal Engine Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @extend_schema(
+        summary="Stream Large Data File",
+        description="High-performance binary stream upload. Bypasses multipart parsing for 10GB+ file support. Pass data as raw binary in POST body.",
+        request=OpenApiTypes.BINARY,
+        responses={202: OpenApiResponse(description="Stream accepted.")},
+    )
+    @action(detail=False, methods=["post"], url_path="import/stream")
+    def stream_data(self, request, *args, **kwargs):
+        """Zero-copy stream ingestion for massive datasets."""
+        model_name = self.get_import_model_name()
+        if not get_config(model_name):
+            return Response({"error": f"Model '{model_name}' not registered."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            job = handle_streaming_upload(model_name, request)
+            return Response({
+                "job_id": str(job.id),
+                "status": job.status,
+                "message": "Binary stream accepted for processing.",
+            }, status=status.HTTP_202_ACCEPTED)
+        except Exception as e:
+            logger.exception(f"Streaming Error for {model_name}: {e}")
+            return Response({"error": "Streaming Injection Failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         summary="Download Template",
