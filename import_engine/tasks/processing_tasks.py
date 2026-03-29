@@ -187,14 +187,40 @@ def process_chunk(self, chunk_id):
         if empty_count > 0:
             ImportJob.objects.filter(id=job.id).update(total_rows=F("total_rows") - empty_count)
 
-        # 5. Finalize and Notify
+        # 5. Finalize Metrics and Notify
+        elapsed = time.time() - start_time
+        processed_in_this_chunk = total_success + total_failed
+        
+        # Update Job Metrics (Atomic Update)
+        from django.utils import timezone
+        
+        # We use F() expressions to ensure atomicity for processed_rows, 
+        # but we need the current value for global ETA calculation
+        job.refresh_from_db(fields=["processed_rows", "total_rows", "started_at"])
+        
+        if not job.started_at:
+            job.started_at = timezone.now()
+        
+        new_processed_total = job.processed_rows + processed_in_this_chunk
+        remaining_rows = max(0, job.total_rows - new_processed_total)
+        
+        # Global Average Throughput since start
+        total_elapsed = (timezone.now() - job.started_at).total_seconds()
+        avg_throughput = new_processed_total / max(total_elapsed, 0.001)
+        eta_seconds = int(remaining_rows / avg_throughput) if avg_throughput > 0 else 0
+        
+        ImportJob.objects.filter(id=job.id).update(
+            processed_rows=F("processed_rows") + processed_in_this_chunk,
+            throughput_rows_sec=avg_throughput,
+            estimated_remaining_seconds=eta_seconds,
+            started_at=job.started_at
+        )
+
         chunk.status = ImportChunk.Status.DONE
         chunk.save(update_fields=["status", "updated_at"])
         
         check_job_completion(job.id)
         
-        # Metrics and Throttled WebSocket Notify
-        elapsed = time.time() - start_time
         metrics = {
             "event": "chunk_processed",
             "job_id": str(job.id),
@@ -202,6 +228,9 @@ def process_chunk(self, chunk_id):
             "success": total_success,
             "failure": total_failed,
             "latency_ms": int(elapsed * 1000),
+            "rows_per_second": round(avg_throughput, 2),
+            "eta_seconds": eta_seconds,
+            "percent_complete": round((new_processed_total / job.total_rows) * 100, 2) if job.total_rows > 0 else 0
         }
         logger.info(metrics)
         
@@ -251,9 +280,11 @@ def send_progress_update(job_id, payload):
 
 def check_job_completion(job_id):
     """
-    Check if all chunks for a job are done and finalize job status.
-    Uses database-level counting for accuracy.
+    Check if all chunks for a job are done and finalize job status with analytics.
     """
+    from django.utils import timezone
+    from import_engine.services.diagnostic_service import DiagnosticService
+    
     job = ImportJob.objects.get(id=job_id)
     pending_chunks = job.chunks.exclude(status=ImportChunk.Status.DONE).exists()
     
@@ -261,6 +292,7 @@ def check_job_completion(job_id):
         # Final aggregation
         job.failure_count = ImportLog.objects.filter(job=job).count()
         job.success_count = job.total_rows - job.failure_count
+        job.finished_at = timezone.now()
         
         if job.success_count <= 0 and job.failure_count > 0:
             job.status = ImportJob.Status.FAILED
@@ -268,8 +300,18 @@ def check_job_completion(job_id):
         else:
             job.status = ImportJob.Status.COMPLETED
             
-        job.save(update_fields=["status", "failure_count", "success_count", "error_message"])
+        job.save(update_fields=["status", "failure_count", "success_count", "error_message", "finished_at"])
         
+        # Tier 3: Generate and store diagnostic report
+        report = DiagnosticService.generate_report(str(job.id))
+        summary_md = DiagnosticService.format_report_as_markdown(report)
+        
+        # Store summary in status message for Admin visibility
+        job.status_message = summary_md
+        job.save(update_fields=["status_message"])
+        
+        logger.info(f"Job {job.id} Finalized. Performance: {report['metrics']['avg_throughput_rows_sec']} rows/sec")
+
         # Trigger cleanup if not in debug
         from django.conf import settings
         if not getattr(settings, "DEBUG", False):

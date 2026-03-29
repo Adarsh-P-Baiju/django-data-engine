@@ -29,6 +29,12 @@ class ImportJob(models.Model):
     failure_count = models.IntegerField(default=0)
 
     field_mapping = models.JSONField(default=dict, blank=True)
+
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    throughput_rows_sec = models.FloatField(default=0.0)
+    estimated_remaining_seconds = models.IntegerField(default=0)
+    
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
