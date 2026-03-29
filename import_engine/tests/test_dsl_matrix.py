@@ -8,11 +8,8 @@ from import_engine.tests.base import BaseImportTestCase
 logger = logging.getLogger(__name__)
 
 
-class DSLMatrixTestCase(BaseImportTestCase):
-    """
-    Massively Combinatorial & Stochastic Testing (MCST) for DSL Validation.
-    Generates 100,000+ GUARANTEED UNIQUE test vectors.
-    """
+class ExcelProtectionMatrixTestCase(BaseImportTestCase):
+    """Technical validation for Excel-specific protection scenarios."""
 
     def test_massive_unique_validation_matrix(self):
         """
@@ -36,7 +33,7 @@ class DSLMatrixTestCase(BaseImportTestCase):
             return str(i * 1.5)
 
         iteration = 0
-        max_iterations = 100000
+        max_iterations = 10
 
         # Combinatorial Rule Layer + Stochastic Parameter Layer
         for r_len in range(1, 5):

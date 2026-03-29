@@ -3,6 +3,8 @@ from django.db import models
 
 
 class ImportJob(models.Model):
+    """Tracks the state and metadata of a multi-segment data import."""
+
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
         SCANNING = "SCANNING", "Scanning"
@@ -30,11 +32,16 @@ class ImportJob(models.Model):
 
     field_mapping = models.JSONField(default=dict, blank=True)
 
+    # Ingestion Metrics
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     throughput_rows_sec = models.FloatField(default=0.0)
     estimated_remaining_seconds = models.IntegerField(default=0)
-    
+
+    # Resumable State
+    total_bytes = models.BigIntegerField(default=0)
+    processed_bytes = models.BigIntegerField(default=0)
+
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 

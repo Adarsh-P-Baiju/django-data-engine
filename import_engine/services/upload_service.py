@@ -24,10 +24,7 @@ def compute_file_fingerprint(file_path: str) -> str:
     return sha256_hash.hexdigest()
 
 def handle_upload(model_name: str, uploaded_file) -> ImportJob:
-    """
-    Ultra-optimized async-ready upload handler.
-    Streams directly to shared volume for background scanning and processing.
-    """
+    """Async-ready upload handler with shared volume streaming."""
     # 1. Preliminary Validation (Size & Extension)
     validate_file_size(uploaded_file)
     validate_file_extension(uploaded_file)
@@ -92,10 +89,7 @@ def handle_upload(model_name: str, uploaded_file) -> ImportJob:
         raise
 
 def handle_streaming_upload(model_name: str, request) -> ImportJob:
-    """
-    Reads directly from the request stream to handle 10GB+ files with zero memory spike.
-    Bypasses standard Django multipart handling for extreme efficiency.
-    """
+    """Reads directly from the request stream for massive datasets."""
     os.makedirs("/tmp/uploads", exist_ok=True)
     temp_fd, temp_path = tempfile.mkstemp(
         dir="/tmp/uploads", prefix=f"stream_{model_name}_"

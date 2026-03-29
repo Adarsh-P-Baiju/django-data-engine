@@ -3,6 +3,7 @@ from .job import ImportJob
 
 
 class ImportChunk(models.Model):
+    """Tracks a subset of rows for parallel processing."""
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
         PROCESSING = "PROCESSING", "Processing"
@@ -15,9 +16,15 @@ class ImportChunk(models.Model):
     end_row = models.IntegerField()
 
     status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.PENDING
+        max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True
     )
     retry_count = models.IntegerField(default=0)
+    
+    created_ids = models.JSONField(
+        default=list, 
+        blank=True, 
+        help_text="List of Primary Keys created by this chunk."
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

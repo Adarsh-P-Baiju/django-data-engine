@@ -3,10 +3,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from import_engine.domain.models import ImportJob, ImportLog
 
 class BaseImportTestCase(TransactionTestCase):
-    """
-    Ultra-advanced base class for Import Engine tests.
-    Provides utility methods for generating test files, jobs, and validating results.
-    """
+    """Base class for Import Engine tests providing common utilities."""
     
     def create_test_file(self, content: str, filename: str = "test.csv") -> SimpleUploadedFile:
         return SimpleUploadedFile(filename, content.encode("utf-8"), content_type="text/csv")

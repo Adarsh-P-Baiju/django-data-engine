@@ -25,10 +25,7 @@ class ForensicLogHandler(logging.Handler):
         return val
 
 class PremiumTestResult(unittest.TextTestResult):
-    """
-    1,000,000,000,000,000,000,000,000,000,000,000,000x Human-Centric Forensic Engine.
-    Generates a unique 'Forensic Narrative' for every one of the 145,410 scenarios.
-    """
+    """Generates detailed technical summaries for each test scenario."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.results_data = []
@@ -40,22 +37,20 @@ class PremiumTestResult(unittest.TextTestResult):
         logging.getLogger().addHandler(self.log_stream)
 
     def generate_narrative(self, test_name, params, err):
-        """
-        Synthesizes a human-readable forensic story for each diagnostic node.
-        """
+        """Generates a human-readable summary for a diagnostic node."""
         objective = f"Analyzing behavior for {test_name.replace('test_', '').replace('_', ' ')}."
         if "rules" in params:
             objective = f"Verifying the DSL rule chain: {params['rules']}."
         elif "payload" in params:
             objective = f"Testing system resilience against malicious vector: {params['id']}."
         
-        logic_trace = "The Engine successfully intercepted the data vector, applied internal validation logic, and verified persistence integrity."
+        logic_trace = "The Engine successfully processed the data vector and verified integrity."
         if err:
-            logic_trace = "The Engine identified a deviation from the expected integrity pattern during the computational pulse."
+            logic_trace = "The Engine identified a failure during processing."
         
-        outcome = "SUCCESS: Integrity verified. Data sanitized and persisted without entropy deviation."
+        outcome = "SUCCESS: Integrity verified."
         if err:
-            outcome = f"CRITICAL: Deviation detected. {str(err).split('\\n')[0]}"
+            outcome = f"FAILURE: {str(err).split('\\n')[0]}"
             
         return {
             "objective": objective,
@@ -76,7 +71,7 @@ class PremiumTestResult(unittest.TextTestResult):
         raw_params = getattr(subtest, 'params', {})
         params = dict(raw_params) if hasattr(raw_params, 'items') else {"val": str(raw_params)}
         
-        # Generate the 'Story' for the 10^36x human-readable requirement
+        # Generate the technical summary
         story = self.generate_narrative(test._testMethodName, params, err)
         
         self.results_data.append({
@@ -99,9 +94,9 @@ class PremiumTestResult(unittest.TextTestResult):
             "st": "PASSED",
             "meta": {"type": "CORE_SYSTEM_HEALTH"},
             "story": {
-                "objective": "Verifying global system integrity and core component alignment.",
-                "logic": "The Engine orchestrated a full-spectrum validation of all registered services and persistence layers.",
-                "outcome": "OPTIMAL: All systems reporting operational. No entropy detected."
+                "objective": "Verifying global system health and core component alignment.",
+                "logic": "The Engine performed a validation of all registered services.",
+                "outcome": "HEALTHY: All systems reporting operational."
             },
             "logs": "CORE_STREAM_OPTIMAL",
             "sql_count": 0,
@@ -112,9 +107,7 @@ class PremiumTestResult(unittest.TextTestResult):
         })
 
 class PremiumReportRunner(DiscoverRunner):
-    """
-    SINGULARITY-GRADE NARRATIVE DIAGNOSTIC ENGINE.
-    """
+    """Custom test runner with narrative diagnostic reporting."""
     def get_resultclass(self):
         return PremiumTestResult
 
@@ -146,7 +139,7 @@ class PremiumReportRunner(DiscoverRunner):
         with open(report_path, "w") as f:
             f.write(html_content)
         
-        print(f"\n[FORENSIC] Narrative State Matrix Generated: {report_path}")
+        print(f"\n[DIAGNOSTIC] Report Generated: {report_path}")
 
     def render_html_report(self, stats, results):
         results_json = json.dumps(results)
@@ -157,7 +150,7 @@ class PremiumReportRunner(DiscoverRunner):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archive | Forensic Deep State Monitor</title>
+    <title>Import Engine Diagnostic Monitor</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <style>
         :root {{
@@ -176,12 +169,10 @@ class PremiumReportRunner(DiscoverRunner):
         .glass {{ background: var(--panel); backdrop-filter: blur(80px); border: 1px solid #30363d; border-radius: 2rem; padding: 2.5rem; box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 1); }}
         .header {{ display: flex; justify-content: space-between; align-items: flex-end; }}
         h1 {{ margin: 0; font-size: 3rem; font-weight: 800; letter-spacing: -2px; background: linear-gradient(to right, #8b5cf6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }}
-        
         .stat-grid {{ display: flex; gap: 4rem; }}
         .stat-item {{ border-left: 2px solid var(--primary); padding-left: 1.5rem; }}
         .stat-val {{ font-size: 2.5rem; font-weight: 800; line-height: 1; }}
         .stat-lbl {{ font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2.5px; opacity: 0.5; margin-top: 8px; font-weight: 700; }}
-
         .main-frame {{ flex-grow: 1; overflow-y: auto; border-radius: 1.5rem; position: relative; border: 1px solid #30363d; }}
         table {{ width: 100%; border-collapse: separate; border-spacing: 0; }}
         th {{ position: sticky; top: 0; background: #161b22; padding: 1.5rem; text-align: left; font-size: 0.7rem; text-transform: uppercase; color: #8b949e; border-bottom: 1px solid #30363d; z-index: 10; font-weight: 800; letter-spacing: 1px; }}
@@ -220,11 +211,11 @@ class PremiumReportRunner(DiscoverRunner):
                     <h2 id="mt-id" style="margin:0; font-size:2.5rem; font-weight:800; color:#fff">FORENSIC_SCOPE</h2>
                     <div id="mt-sub" class="mono" style="margin-top:10px; font-size:0.8rem; opacity:0.5">COMPUTATIONAL_SEQUENCE_ALPHA</div>
                 </div>
-                <button class="deep-dive-btn" onclick="closeM()" style="padding: 15px 30px">Exit Analysis</button>
+                <button class="deep-dive-btn" onclick="closeM()" style="padding: 15px 30px">Exit</button>
             </div>
             <div class="modal-body">
                 <div class="section-card" style="grid-column: span 2; background: linear-gradient(to right, #161b22, #0d1117); border-left: 5px solid var(--primary);">
-                    <div class="section-label">Computational Narrative (Human-Readable)</div>
+                    <div class="section-label">Technical Narrative</div>
                     <div id="ms-obj" class="story-text" style="font-weight: 800; color: #fff; margin-bottom: 15px;"></div>
                     <div id="ms-log" class="story-text" style="margin-bottom: 15px; opacity: 0.8;"></div>
                     <div id="ms-out" class="story-text" style="color: var(--secondary); font-weight: 600;"></div>
@@ -234,11 +225,11 @@ class PremiumReportRunner(DiscoverRunner):
                     <pre id="ml-logs"></pre>
                 </div>
                 <div class="section-card">
-                    <div class="section-label">Sub-Quantum Params</div>
+                    <div class="section-label">System Metadata</div>
                     <pre id="ml-meta"></pre>
                 </div>
                 <div class="section-card" style="grid-column: span 2;">
-                    <div class="section-label">SQL Resonance Trace</div>
+                    <div class="section-label">SQL Trace</div>
                     <pre id="ml-sql"></pre>
                 </div>
             </div>
@@ -247,8 +238,8 @@ class PremiumReportRunner(DiscoverRunner):
 
     <div class="glass header">
         <div>
-            <h1>Archive <span style="font-weight: 300; opacity: 0.5">Forensics</span></h1>
-            <div class="mono" style="font-size: 0.8rem; margin-top: 10px; opacity: 0.4">10^36x ADVANCED COMPUTATIONAL NARRATIVES | {stats['timestamp']}</div>
+            <h1>Import Engine <span style="font-weight: 300; opacity: 0.5">Diagnostics</span></h1>
+            <div class="mono" style="font-size: 0.8rem; margin-top: 10px; opacity: 0.4">TECHNICAL NARRATIVES | {stats['timestamp']}</div>
         </div>
         <div class="stat-grid">
             <div class="stat-item"><div class="stat-val">{stats['total']:,}</div><div class="stat-lbl">Validated Scenarios</div></div>

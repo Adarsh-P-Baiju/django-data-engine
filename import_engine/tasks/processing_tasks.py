@@ -20,9 +20,7 @@ logger = logging.getLogger("import_engine.metrics")
 
 @shared_task(bind=True, max_retries=3)
 def generate_chunks_task(self, job_id):
-    """
-    Background task to generate segments (chunks) for parallel processing.
-    """
+    """Generates file segments for parallel processing."""
     try:
         generate_chunks_for_job(job_id)
     except Exception as exc:
@@ -35,10 +33,7 @@ def generate_chunks_task(self, job_id):
 
 @shared_task(bind=True, max_retries=5)
 def process_chunk(self, chunk_id):
-    """
-    Ultra-advanced chunk processor with zero-memory row streaming,
-    precise transaction boundaries, and throttled observability.
-    """
+    """Processes a specific file chunk with sub-batch persistence."""
     start_time = time.time()
     
     # 1. Initialization and Locked Status Update
@@ -77,8 +72,13 @@ def process_chunk(self, chunk_id):
         resolver = FKResolver(config)
         empty_count = 0
 
-        # 2. Optimized Row Pipeline (Streaming with Sub-batches)
+        # Sub-batching configuration
         SUB_BATCH_SIZE = 500
+        
+        # Guard services
+        from import_engine.services.dedupe_service import DedupeService
+        from import_engine.services.load_guard import LoadGuardService
+        deduper = DedupeService(job.model_name)
         
         # Iterate over the specified range in the file
         row_iterator = adapter.iter_rows(start_row=chunk.start_row, end_row=chunk.end_row)
@@ -97,7 +97,23 @@ def process_chunk(self, chunk_id):
             batch_staging = []
             batch_logs = []
             
+            # Business key for Bloom Check (defaults to first column or 'id')
+            business_key_field = getattr(config, "business_key", next(iter(config.fields.keys()), "id"))
+
             for idx, (row_idx, row_dict, mapped_dict) in enumerate(zip(row_indices, row_dicts, mapped_rows)):
+                # Deduplication check
+                # We check the raw value before any mapping/validation to save CPU
+                b_val = str(mapped_dict.get(business_key_field, ""))
+                if b_val and deduper.is_duplicate(b_val):
+                     # Log deduplication event
+                     batch_logs.append(
+                        ImportLog(job=job, chunk=chunk, row_number=row_idx,
+                                  row_data=mask_pii(row_dict, config), 
+                                  errors={"dedupe": "Row rejected as probable duplicate (Bloom Filter hit)."}, 
+                                  is_fatal=False)
+                     )
+                     continue
+
                 cleaned_data, errors = validate_row(config, mapped_dict)
                 
                 # Resolve Foreign Keys
@@ -112,6 +128,9 @@ def process_chunk(self, chunk_id):
                                 cleaned_data[fk_field] = None
                         else:
                             cleaned_data[fk_field] = resolved_obj
+                
+                # Load Guard Backpressure
+                LoadGuardService.throttle(factor=0.05)
 
                 if errors:
                     batch_logs.append(
@@ -132,16 +151,25 @@ def process_chunk(self, chunk_id):
             with transaction.atomic():
                 if batch_instances:
                     conflict_res = getattr(config, "conflict_resolution", "fail")
+                    created_objs = []
+                    
                     if conflict_res == "update":
                         upsert_keys = getattr(config, "upsert_keys", [])
                         update_fields = [f for f in config.fields.keys() if f not in upsert_keys]
-                        bulk_persist(config.model, batch_instances, upsert_fields={
+                        created_objs = bulk_persist(config.model, batch_instances, upsert_fields={
                             "unique_fields": upsert_keys, "update_fields": update_fields,
                         })
                     elif conflict_res == "ignore":
-                        bulk_persist(config.model, batch_instances, ignore_conflicts=True)
+                        created_objs = bulk_persist(config.model, batch_instances, ignore_conflicts=True)
                     else:
-                        bulk_persist(config.model, batch_instances)
+                        created_objs = bulk_persist(config.model, batch_instances)
+                    
+                    # Track IDs for revert support
+                    if created_objs:
+                        # Extract IDs - bulk_persist returns individual objects for creation
+                        new_ids = [str(obj.pk) for obj in created_objs if hasattr(obj, 'pk')]
+                        chunk.created_ids.extend(new_ids)
+                        chunk.save(update_fields=["created_ids"])
 
                 if batch_logs:
                     ImportLog.objects.bulk_create(batch_logs)
@@ -187,7 +215,7 @@ def process_chunk(self, chunk_id):
         if empty_count > 0:
             ImportJob.objects.filter(id=job.id).update(total_rows=F("total_rows") - empty_count)
 
-        # 5. Finalize Metrics and Notify
+        # Finalize and Notify
         elapsed = time.time() - start_time
         processed_in_this_chunk = total_success + total_failed
         
@@ -240,7 +268,7 @@ def process_chunk(self, chunk_id):
             send_progress_update(job.id, metrics)
 
     except Exception as exc:
-        # 6. Resilience and Retry logic
+        # Resilience and Retry logic
         chunk.status = ImportChunk.Status.PENDING
         chunk.save(update_fields=["status", "updated_at"])
         
@@ -279,9 +307,7 @@ def send_progress_update(job_id, payload):
         logger.warning(f"WebSocket Notification failed: {e}")
 
 def check_job_completion(job_id):
-    """
-    Check if all chunks for a job are done and finalize job status with analytics.
-    """
+    """Finalizes job status after all chunks are complete."""
     from django.utils import timezone
     from import_engine.services.diagnostic_service import DiagnosticService
     
@@ -302,12 +328,18 @@ def check_job_completion(job_id):
             
         job.save(update_fields=["status", "failure_count", "success_count", "error_message", "finished_at"])
         
-        # Tier 3: Generate and store diagnostic report
+        # Generate and store diagnostic report
         report = DiagnosticService.generate_report(str(job.id))
         summary_md = DiagnosticService.format_report_as_markdown(report)
         
+        # Audit Proof of Ingestion
+        from import_engine.services.audit_service import AuditTraceabilityService
+        proof_json = AuditTraceabilityService.generate_proof_of_ingestion(str(job.id))
+        
+        full_status = f"{summary_md}\n\n### Audit Log\n```json\n{proof_json}\n```"
+        
         # Store summary in status message for Admin visibility
-        job.status_message = summary_md
+        job.status_message = full_status
         job.save(update_fields=["status_message"])
         
         logger.info(f"Job {job.id} Finalized. Performance: {report['metrics']['avg_throughput_rows_sec']} rows/sec")

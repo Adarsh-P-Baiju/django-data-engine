@@ -169,6 +169,14 @@ CELERY_TASK_ROUTES = {
     "import_engine.tasks.cleanup_tasks.recover_stale_uploads": {"queue": "light_tasks"},
 }
 
+# Regional routing configuration
+IMPORT_ENGINE_REGION_QUEUES = {
+    "US": "heavy_tasks_us",
+    "EU": "heavy_tasks_eu",
+    "ASIA": "heavy_tasks_asia",
+    "DEFAULT": "heavy_tasks"
+}
+
 
 CELERY_BEAT_SCHEDULE = {
     "recover-stale-uploads-every-minute": {

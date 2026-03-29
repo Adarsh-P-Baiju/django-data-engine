@@ -13,25 +13,24 @@ from import_engine.api.throttling import UploadUserRateThrottle, UploadAnonRateT
 
 logger = logging.getLogger(__name__)
 
+
 class ImportMixin:
-    """
-    Ultra-advanced DRF ViewSet Mixin for Model-centric Data Imports.
-    Provides polymorphic endpoints for secure uploads and dynamic template generation.
-    """
-    
-    # Default throttles for import actions
+    """DRF Mixin providing endpoints for model-centric data ingestion."""
+
     import_throttle_classes = [UploadUserRateThrottle, UploadAnonRateThrottle]
 
     def get_import_model_name(self) -> str:
         """Resolves the model name for the import engine."""
         if hasattr(self, "import_model_name"):
             return self.import_model_name
-        
+
         qs = getattr(self, "get_queryset", lambda: getattr(self, "queryset", None))()
         if qs is not None:
             return qs.model.__name__
-            
-        raise ValueError("ImportMixin requires 'import_model_name' or a 'queryset' on the ViewSet.")
+
+        raise ValueError(
+            "ImportMixin requires 'import_model_name' or a 'queryset' on the ViewSet."
+        )
 
     def get_throttles(self):
         """Dynamic throttling: Apply import throttles only to import actions."""
@@ -55,11 +54,14 @@ class ImportMixin:
         """Endpoint for zero-config schema inference."""
         file = request.FILES.get("file")
         if not file:
-            return Response({"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         from import_engine.services.auto_config_service import AutoConfigService
+
         result = AutoConfigService.analyze_file(file, file.name)
-        
+
         if "error" in result:
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
         return Response(result, status=status.HTTP_200_OK)
@@ -74,7 +76,9 @@ class ImportMixin:
             }
         },
         responses={
-            202: OpenApiResponse(description="File accepted for background processing."),
+            202: OpenApiResponse(
+                description="File accepted for background processing."
+            ),
             400: OpenApiResponse(description="Validation error."),
             404: OpenApiResponse(description="Model not registered."),
             429: OpenApiResponse(description="Rate limit exceeded."),
@@ -84,24 +88,35 @@ class ImportMixin:
     def import_data(self, request, *args, **kwargs):
         model_name = self.get_import_model_name()
         if not get_config(model_name):
-            return Response({"error": f"Model '{model_name}' not registered."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": f"Model '{model_name}' not registered."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         file = request.FILES.get("file")
         if not file:
-            return Response({"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             job = handle_upload(model_name, file)
-            return Response({
-                "job_id": str(job.id),
-                "status": job.status,
-                "message": "File accepted for processing.",
-            }, status=status.HTTP_202_ACCEPTED)
+            return Response(
+                {
+                    "job_id": str(job.id),
+                    "status": job.status,
+                    "message": "File accepted for processing.",
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
         except ValidationError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.exception(f"Import Error for {model_name}: {e}")
-            return Response({"error": "Internal Engine Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": "Internal Engine Error"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @extend_schema(
         summary="Stream Large Data File",
@@ -114,24 +129,35 @@ class ImportMixin:
         """Zero-copy stream ingestion for massive datasets."""
         model_name = self.get_import_model_name()
         if not get_config(model_name):
-            return Response({"error": f"Model '{model_name}' not registered."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": f"Model '{model_name}' not registered."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         try:
             job = handle_streaming_upload(model_name, request)
-            return Response({
-                "job_id": str(job.id),
-                "status": job.status,
-                "message": "Binary stream accepted for processing.",
-            }, status=status.HTTP_202_ACCEPTED)
+            return Response(
+                {
+                    "job_id": str(job.id),
+                    "status": job.status,
+                    "message": "Binary stream accepted for processing.",
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
         except Exception as e:
             logger.exception(f"Streaming Error for {model_name}: {e}")
-            return Response({"error": "Streaming Injection Failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": "Streaming Injection Failed"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @extend_schema(
         summary="Download Template",
         description="Downloads a dynamically generated Excel template with validation constraints.",
         responses={
-            200: OpenApiResponse(description="Excel binary payload.", response=OpenApiTypes.BINARY),
+            200: OpenApiResponse(
+                description="Excel binary payload.", response=OpenApiTypes.BINARY
+            ),
             404: OpenApiResponse(description="Model not registered."),
         },
     )
@@ -140,13 +166,24 @@ class ImportMixin:
         model_name = self.get_import_model_name()
         config = get_config(model_name)
         if not config:
-            return Response({"error": f"Model '{model_name}' not registered."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": f"Model '{model_name}' not registered."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         try:
             output = generate_template(config)
-            response = HttpResponse(output, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-            response["Content-Disposition"] = f"attachment; filename={model_name}_template.xlsx"
+            response = HttpResponse(
+                output,
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            response["Content-Disposition"] = (
+                f"attachment; filename={model_name}_template.xlsx"
+            )
             return response
         except Exception as e:
             logger.exception(f"Template Error for {model_name}: {e}")
-            return Response({"error": "Template Generation Failed"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": "Template Generation Failed"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

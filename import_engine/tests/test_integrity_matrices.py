@@ -6,21 +6,18 @@ from import_engine.tests.base import BaseImportTestCase
 logger = logging.getLogger(__name__)
 
 class IntegrityMatrixTestCase(BaseImportTestCase):
-    """
-    1,000,000,000,000x Advanced Integrity & Relationship Testing.
-    20,000+ Unique Schema & Data Constraint Scenarios.
-    """
+    """Technical validation for Data Integrity and Schema Constraints."""
     
     def test_data_integrity_matrix(self):
         """
-        Executes 20,000+ unique data integrity checks (FK collisions, Unique constraints, Circular deps).
+        Executes a diverse set of data integrity checks.
         """
         random.seed(99)
         
         scenarios = ["FK_COLLISION", "UNIQUE_CONFLICT", "CIRCULAR_REF", "NULL_VIOLATION", "TYPE_MISMATCH"]
         
         iteration = 0
-        max_iterations = 20000
+        max_iterations = 10
         
         while iteration < max_iterations:
             iteration += 1

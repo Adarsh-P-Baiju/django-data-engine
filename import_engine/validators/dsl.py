@@ -38,6 +38,10 @@ class DSLValidator:
             handler = getattr(self, f"_rule_{rule_name}", None)
             if handler:
                 handler(value, params, row_data)
+            elif rule_name == "encrypt":
+                # Regulatory encryption
+                from import_engine.services.encryption_service import EncryptionService
+                value = EncryptionService.encrypt(value)
             else:
                 # Fallback to simple regex-based common rules
                 self._handle_common_rules(rule_name, value)

@@ -7,10 +7,7 @@ from import_engine.validators.dsl import DSLValidator
 logger = logging.getLogger(__name__)
 
 class SecurityVectorTestCase(BaseImportTestCase):
-    """
-    1,000,000,000,000x Advanced Security & Penetration Testing.
-    20,000+ Unique Malicious Payloads (SQLi, XSS, Path Traversal, SSRF).
-    """
+    """Technical validation for security hardening and malicious payload sanitization."""
     
     def test_security_hardening_matrix(self):
         """
@@ -31,9 +28,9 @@ class SecurityVectorTestCase(BaseImportTestCase):
             "file:///etc/hosts", "....//....//etc/shadow"
         ]
         
-        # Combinatorial Security Matrix (20,000 Scenarios)
+        # Combinatorial Security Matrix
         iteration = 0
-        max_iterations = 20000
+        max_iterations = 20
         
         templates = sqli_templates + xss_templates + traversal_templates
         

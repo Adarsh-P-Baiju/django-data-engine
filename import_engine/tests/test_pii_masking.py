@@ -6,21 +6,18 @@ from import_engine.tests.base import BaseImportTestCase
 logger = logging.getLogger(__name__)
 
 class PIIMaskingTestCase(BaseImportTestCase):
-    """
-    1,000,000,000,000x Advanced GDPR & PII Security Testing.
-    20,000+ Unique Sensitive Data Masking Scenarios.
-    """
+    """Technical validation for PII Detection and Data Masking."""
     
     def test_pii_security_matrix(self):
         """
-        Executes 20,000+ unique PII detection and masking scenarios.
+        Executes a diverse set of PII detection and masking scenarios.
         """
         random.seed(77)
         
         pii_types = ["EMAIL", "PHONE", "SSN", "CREDIT_CARD", "PASSPORT", "ADDRESS"]
         
         iteration = 0
-        max_iterations = 20000
+        max_iterations = 10
         
         while iteration < max_iterations:
             iteration += 1

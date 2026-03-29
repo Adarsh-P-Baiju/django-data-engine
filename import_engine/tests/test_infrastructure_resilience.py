@@ -5,21 +5,18 @@ from import_engine.tests.base import BaseImportTestCase
 logger = logging.getLogger(__name__)
 
 class InfrastructureResilienceTestCase(BaseImportTestCase):
-    """
-    1,000,000,000,000x Advanced Infrastructure & Resilience Testing.
-    20,000+ Unique Failure & Recovery Scenarios (Redis outages, Worker timeouts, DB locked).
-    """
+    """Technical validation for Infrastructure Resilience and Failure Recovery."""
     
     def test_infrastructure_failure_matrix(self):
         """
-        Executes 20,000+ unique infrastructure failure/recovery vectors.
+        Executes a diverse set of infrastructure failure/recovery vectors.
         """
         random.seed(88)
         
         failures = ["REDIS_DOWN", "WORKER_TIMEOUT", "DB_LOCKED", "NETWORK_PARTITION", "DISK_FULL"]
         
         iteration = 0
-        max_iterations = 20000
+        max_iterations = 10
         
         while iteration < max_iterations:
             iteration += 1

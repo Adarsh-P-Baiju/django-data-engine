@@ -5,10 +5,7 @@ from thefuzz import process
 logger = logging.getLogger(__name__)
 
 def generate_fuzzy_mapping(raw_headers: List[str], config_fields: Dict[str, Any]) -> Dict[str, str]:
-    """
-    Advanced fuzzy mapping logic for resolving raw file headers to model fields.
-    Prioritizes exact matches and explicit labels before falling back to fuzzy matching.
-    """
+    """Resolves raw headers to model fields via fuzzy matching."""
     mapping = {}
     expected_field_names = list(config_fields.keys())
     unmapped_expected = set(expected_field_names)
@@ -50,10 +47,7 @@ def generate_fuzzy_mapping(raw_headers: List[str], config_fields: Dict[str, Any]
     return mapping
 
 def apply_mapping(row_dict: Dict[str, Any], field_mapping: Dict[str, str], config: Any) -> Dict[str, Any]:
-    """
-    Transforms a raw row dictionary into a mapped dictionary based on field_mapping.
-    If field_mapping is missing, falls back to best-effort label-to-field matching.
-    """
+    """Applies a field mapping to a raw row dictionary."""
     if field_mapping:
         return {field_mapping[k]: v for k, v in row_dict.items() if k in field_mapping}
     

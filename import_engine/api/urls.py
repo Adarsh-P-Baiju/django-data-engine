@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 from .views.upload_views import ModelImportViewSet
 from .views.manage_views import ImportJobViewSet
+from .views.upload_resumable import ResumableUploadView
 from import_engine.views.monitor import TestReportListView, TestReportDetailView
 
 router = DefaultRouter()
@@ -30,5 +31,15 @@ urlpatterns = [
         "imports/<str:model_name>/upload/",
         ModelImportViewSet.as_view({"post": "import_data"}),
         name="import_upload",
+    ),
+    path(
+        "imports/resumable/<str:model_name>/init/",
+        ResumableUploadView.as_view(),
+        name="import_resumable_init",
+    ),
+    path(
+        "imports/resumable/<str:job_id>/",
+        ResumableUploadView.as_view(),
+        name="import_resumable_chunk",
     ),
 ] + router.urls

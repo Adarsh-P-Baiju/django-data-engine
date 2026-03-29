@@ -2,10 +2,7 @@ from django.db import models
 from .job import ImportJob
 
 class ImportStaging(models.Model):
-    """
-    Enterprise Staging Table for Interactive Conflict Resolution.
-    Stores rows that failed validation or require manual review.
-    """
+    """Temporary storage for rows requiring manual review."""
     job = models.ForeignKey(ImportJob, on_delete=models.CASCADE, related_name="staging_rows")
     row_number = models.IntegerField()
     raw_data = models.JSONField(help_text="Original row data from the file.")

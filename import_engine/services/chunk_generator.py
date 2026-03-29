@@ -12,10 +12,7 @@ logger = logging.getLogger(__name__)
 
 @transaction.atomic
 def generate_chunks_for_job(job_id: str, chunk_size: int = 1000) -> int:
-    """
-    Reads the file using streaming adapters and generates ImportChunk records.
-    Returns the total number of chunks created.
-    """
+    """Generates segment records for parallel processing."""
     job = ImportJob.objects.select_for_update().get(id=job_id)
     file_obj = job.file.open("rb")
     

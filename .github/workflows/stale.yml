@@ -1,4 +1,4 @@
-name: 🧹 Mark Stale Issues
+name: Mark Stale Issues
 
 on:
   schedule:

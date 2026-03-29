@@ -5,10 +5,7 @@ from django.http import HttpResponse, Http404
 from django.conf import settings
 
 class TestReportListView(TemplateView):
-    """
-    Premium Django HTML Monitor - List View.
-    Provides a high-end Glassmorphism interface for browsing ALL 100K+ diagnostic reports.
-    """
+    """View for browsing generated diagnostic reports."""
     template_name = "import_engine/report_list.html"
 
     def get_context_data(self, **kwargs):
@@ -22,10 +19,7 @@ class TestReportListView(TemplateView):
         return context
 
 class TestReportDetailView(View):
-    """
-    Premium Django HTML Monitor - Detail View.
-    Directly renders the high-fidelity diagnostic dashboard for a specific test run.
-    """
+    """Directly renders a diagnostic report for a specific test run."""
     def get(self, request, report_name):
         report_path = os.path.join(settings.BASE_DIR, "import_engine/static/reports", report_name)
         if not os.path.exists(report_path):

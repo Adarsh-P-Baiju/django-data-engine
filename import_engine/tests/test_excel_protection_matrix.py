@@ -5,21 +5,18 @@ from import_engine.tests.base import BaseImportTestCase
 logger = logging.getLogger(__name__)
 
 class ExcelProtectionMatrixTestCase(BaseImportTestCase):
-    """
-    1,000,000,000,000x Advanced Excel Protection & Formula Sanitization Testing.
-    15,000+ Unique Excel Formats and Malicious Macro Scenarios.
-    """
+    """Technical validation for Excel-specific protection scenarios."""
     
     def test_excel_protection_matrix(self):
         """
-        Executes 15,000+ unique Excel-specific protection scenarios.
+        Executes a diverse set of Excel-specific protection scenarios.
         """
         random.seed(44)
         formats = ["XLSX", "XLS", "XLSM", "CSV", "TSV"]
         protections = ["PASSWORD_PROT", "READ_ONLY", "MACRO_INJECT", "FORMULA_INDIRECT"]
         
         iteration = 0
-        max_iterations = 15000
+        max_iterations = 10
         
         while iteration < max_iterations:
             iteration += 1

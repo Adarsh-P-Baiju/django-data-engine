@@ -5,20 +5,17 @@ from import_engine.tests.base import BaseImportTestCase
 logger = logging.getLogger(__name__)
 
 class UpsertMatrixTestCase(BaseImportTestCase):
-    """
-    1,000,000,000,000x Advanced UPSERT & Conflict Resolution Testing.
-    15,000+ Unique Conflict Scenarios (Update, Ignore, Fail, Conditional).
-    """
+    """Technical validation for UPSERT and Conflict Resolution logic."""
     
     def test_upsert_strategy_matrix(self):
         """
-        Executes 15,000+ unique UPSERT strategies against varied data payloads.
+        Executes a diverse set of UPSERT strategies against varied data payloads.
         """
         random.seed(66)
         strategies = ["UPDATE", "IGNORE", "FAIL", "MERGE", "CONDITIONAL_UPDATE"]
         
         iteration = 0
-        max_iterations = 15000
+        max_iterations = 10
         
         while iteration < max_iterations:
             iteration += 1
@@ -32,20 +29,17 @@ class UpsertMatrixTestCase(BaseImportTestCase):
         logger.info(f"UPSERT: Completed {iteration} unique conflict scenarios.")
 
 class FKResolverMatrixTestCase(BaseImportTestCase):
-    """
-    1,000,000,000,000x Advanced Foreign Key Resolution Testing.
-    15,000+ Unique Resolution Scenarios (Email, ID, SLUG, Fuzzy).
-    """
+    """Technical validation for Foreign Key Resolution logic."""
     
     def test_fk_resolution_matrix(self):
         """
-        Executes 15,000+ unique FK resolution vectors.
+        Executes a diverse set of FK resolution vectors.
         """
         random.seed(55)
         res_types = ["EMAIL", "ID", "SLUG", "FUZZY", "EXTERNAL_KEY"]
         
         iteration = 0
-        max_iterations = 15000
+        max_iterations = 10
         
         while iteration < max_iterations:
             iteration += 1

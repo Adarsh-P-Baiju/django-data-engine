@@ -6,10 +6,7 @@ from import_engine.domain.models import ImportJob
 logger = logging.getLogger(__name__)
 
 class RollbackService:
-    """
-    Enterprise Rollback Service.
-    Provides atomic, job-level recovery by purging imported records.
-    """
+    """Provides atomic, job-level recovery for data imports."""
     
     @staticmethod
     def rollback_job(job_id: str) -> Tuple[bool, str]:
