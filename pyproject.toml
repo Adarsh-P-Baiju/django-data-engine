@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "django-data-engine"
+version = "2.0.0"
+authors = [
+    { name = "Adarsh P Baiju" },
+]
+description = "Enterprise-grade Django Data Import Engine with built-in validation, security, and observability."
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["django", "import", "data", "excel", "csv", "validation"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 5.0",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "Django>=5.0",
+    "djangorestframework>=3.14",
+    "celery>=5.3",
+    "redis>=5.0",
+    "openpyxl>=3.1",
+    "python-magic>=0.4",
+    "pyclamd>=0.4.0",
+    "drf-spectacular>=0.27",
+    "django-storages>=1.14",
+    "thefuzz>=0.22",
+    "Levenshtein>=0.25",
+    "channels>=4.0",
+    "channels-redis>=4.2",
+    "cryptography>=41.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Adarsh-P-Baiju/django-data-engine"
+Issues = "https://github.com/Adarsh-P-Baiju/django-data-engine/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["import_engine"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "import_engine",
+    "README.md",
+    "LICENSE",
+]

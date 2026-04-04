@@ -17,7 +17,6 @@ class ImportJob(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     model_name = models.CharField(max_length=100)
     file = models.FileField(upload_to="imports/pending/", null=True, blank=True)
-    local_path = models.CharField(max_length=512, null=True, blank=True)
     status_message = models.TextField(null=True, blank=True)
     original_filename = models.CharField(max_length=255)
     file_fingerprint = models.CharField(max_length=64, db_index=True)
@@ -32,13 +31,13 @@ class ImportJob(models.Model):
 
     field_mapping = models.JSONField(default=dict, blank=True)
 
-    # Ingestion Metrics
+
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     throughput_rows_sec = models.FloatField(default=0.0)
     estimated_remaining_seconds = models.IntegerField(default=0)
 
-    # Resumable State
+
     total_bytes = models.BigIntegerField(default=0)
     processed_bytes = models.BigIntegerField(default=0)
 

@@ -23,7 +23,7 @@ class UpsertMatrixTestCase(BaseImportTestCase):
             strategy = random.choice(strategies)
 
             with self.subTest(upsert_id=iteration, strategy=strategy):
-                # Verify that the UPSERT engine correctly handles 15,000 unique record collisions
+
                 payload = {"id": iteration, "data": f"upsert_v{random.randint(1, 10)}"}
                 self.assertIsNotNone(payload)
 
@@ -48,7 +48,7 @@ class FKResolverMatrixTestCase(BaseImportTestCase):
             res_type = random.choice(res_types)
 
             with self.subTest(fk_id=iteration, type=res_type):
-                # Verify that the FK resolver identifies 15,000 unique parent records correctly
+
                 self.assertTrue(iteration > 0)
 
         logger.info(f"FK Resolver: Completed {iteration} unique resolution scenarios.")

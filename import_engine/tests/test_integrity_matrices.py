@@ -32,7 +32,7 @@ class IntegrityMatrixTestCase(BaseImportTestCase):
             unique_id = str(uuid.uuid4())[:8]
 
             with self.subTest(integrity_id=iteration, scenario=scenario_type):
-                # Simulate a complex persistence scenario
+
                 payload = None
                 if scenario_type == "FK_COLLISION":
                     payload = {
@@ -44,7 +44,7 @@ class IntegrityMatrixTestCase(BaseImportTestCase):
                 else:
                     payload = {"data": f"test_payload_{unique_id}_{iteration}"}
 
-                # Verify that the engine identifies these integrity issues at scale
+
                 self.assertIsNotNone(payload)
 
         logger.info(f"Integrity: Completed {iteration} unique relationship scenarios.")

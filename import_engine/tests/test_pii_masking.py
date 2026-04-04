@@ -25,7 +25,7 @@ class PIIMaskingTestCase(BaseImportTestCase):
             pii_type = random.choice(pii_types)
             val = None
 
-            # Generate unique sensitive data
+
             if pii_type == "EMAIL":
                 val = f"private_{iteration}@secret.com"
             elif pii_type == "PHONE":
@@ -34,7 +34,7 @@ class PIIMaskingTestCase(BaseImportTestCase):
                 val = "".join(random.choices(string.digits, k=16)) + str(iteration)
 
             with self.subTest(pii_id=iteration, type=pii_type):
-                # Verify that the masking engine correctly redacts these 20,000 unique records
+
                 self.assertIsNotNone(val)
 
         logger.info(f"PII: Completed {iteration} unique masking scenarios.")

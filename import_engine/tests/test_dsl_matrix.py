@@ -15,12 +15,12 @@ class ExcelProtectionMatrixTestCase(BaseImportTestCase):
         """
         Executes a high-density matrix across all validation rules with stochastic parameters.
         """
-        random.seed(42)  # Deterministic but varied
+        random.seed(42)
 
         base_rules = ["required", "email", "phone", "date"]
         param_rules = ["min", "max", "in", "regex", "after"]
 
-        # Generator for unique values
+
         def get_unique_val(i):
             if i % 5 == 0:
                 return f"user_{i}@example.com"
@@ -35,16 +35,16 @@ class ExcelProtectionMatrixTestCase(BaseImportTestCase):
         iteration = 0
         max_iterations = 10
 
-        # Combinatorial Rule Layer + Stochastic Parameter Layer
+
         for r_len in range(1, 5):
             for combo in itertools.combinations(base_rules + param_rules, r_len):
-                # For each combination, generate 80 unique variations (~20K cases)
+
                 for var_idx in range(80):
                     iteration += 1
                     if iteration > max_iterations:
                         break
 
-                    # Materialize rules with dynamic parameters
+
                     final_rules = []
                     for r in combo:
                         if r == "min":
@@ -63,12 +63,12 @@ class ExcelProtectionMatrixTestCase(BaseImportTestCase):
                     val = get_unique_val(iteration)
 
                     with self.subTest(rules=final_rules, value=val, id=iteration):
-                        # Use a unique field name and row context to ensure isolation
+
                         validator = DSLValidator(
                             f"field_{iteration}", final_rules, None
                         )
                         try:
-                            # We test the validator's resilience against complex rule chains
+
                             validator.validate(val, {"other_field": "2022-01-01"})
                         except Exception:
                             pass

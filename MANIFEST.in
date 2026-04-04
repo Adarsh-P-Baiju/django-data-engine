@@ -1,0 +1,11 @@
+include LICENSE
+include README.md
+recursive-include import_engine/migrations *.py
+recursive-include import_engine/templates *
+recursive-exclude import_engine/tests *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+exclude .env
+exclude Makefile
+exclude docker-compose.yml
+exclude pyproject.toml

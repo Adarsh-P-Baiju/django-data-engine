@@ -29,11 +29,11 @@ class SurgicalUndoService:
             if not config or not chunk.created_ids:
                 return {"status": "skipped", "message": "No records to revert."}
 
-            # 1. Surgical Deletion
+
             model = config.model
             count, _ = model.objects.filter(pk__in=chunk.created_ids).delete()
 
-            # 2. Update Chunk and Job Stats
+
             chunk.created_ids = []
             chunk.status = ImportChunk.Status.FAILED
             chunk.save(update_fields=["created_ids", "status"])
@@ -61,7 +61,7 @@ class AuditTraceabilityService:
         try:
             job = ImportJob.objects.get(id=job_id)
 
-            # 1. Collect Provenance Data
+
             provenance = {
                 "job_id": str(job.id),
                 "timestamp": timezone.now().isoformat(),
@@ -73,7 +73,7 @@ class AuditTraceabilityService:
                 "model": job.model_name,
             }
 
-            # 2. Generate Tamper-Proof Signature (HMAC-SHA256)
+
             payload = json.dumps(provenance, sort_keys=True)
             from django.conf import settings
 
@@ -87,7 +87,7 @@ class AuditTraceabilityService:
                 "engine_version": "1.4.0",
             }
 
-            # In a real enterprise setup, we would sign this with a proper JWS/JWT
+
             return json.dumps(proof, indent=2)
 
         except Exception as e:

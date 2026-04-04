@@ -21,7 +21,7 @@ class EncryptionService:
         if not cls._fernet:
             key = getattr(settings, "DATA_ENCRYPTION_KEY", None)
             if not key:
-                # Log a critical warning if PII encryption is requested but no key exists
+
                 logger.critical(
                     "EncryptionService: DATA_ENCRYPTION_KEY missing in settings!"
                 )
@@ -62,5 +62,5 @@ class EncryptionService:
         try:
             return fernet.decrypt(str(cipher_text).encode()).decode()
         except Exception:
-            # If decryption fails, return as-is (might not be encrypted)
+
             return cipher_text

@@ -20,7 +20,7 @@ class LoadGuardService:
             ram = psutil.virtual_memory().percent
             return {"cpu": cpu, "ram": ram}
         except ImportError:
-            # Fallback for environments without psutil
+
             return {"cpu": 0.0, "ram": 0.0}
 
     @classmethod

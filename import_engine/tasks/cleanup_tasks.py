@@ -35,7 +35,7 @@ def recover_stale_uploads():
     for filename in os.listdir(upload_dir):
         file_path = os.path.join(upload_dir, filename)
 
-        # Check if file is older than 5 minutes (to avoid race with active uploads)
+
         if (
             timezone.now()
             - timezone.datetime.fromtimestamp(
@@ -44,7 +44,7 @@ def recover_stale_uploads():
         ) < timedelta(minutes=5):
             continue
 
-        # Look for a job with this local_path
+
         job = ImportJob.objects.filter(
             local_path=file_path, status=ImportJob.Status.PENDING
         ).first()
@@ -62,8 +62,8 @@ def recover_stale_uploads():
             )
             security_scan_task.apply_async(args=[job.id], queue="heavy_tasks")
         else:
-            # No pending job needs this? Orphan or already handled (moved to MinIO)
-            # Check if it was moved to MinIO or just an orphan
+
+
             if not ImportJob.objects.filter(local_path=file_path).exists():
                 logger.info({"event": "recovery_cleanup_orphan", "file": file_path})
                 os.remove(file_path)

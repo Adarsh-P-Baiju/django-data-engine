@@ -25,7 +25,7 @@ class ExcelProtectionMatrixTestCase(BaseImportTestCase):
             prot = random.choice(protections)
 
             with self.subTest(excel_id=iteration, format=fmt, protection=prot):
-                # Verify that the engine identifies and blocks 15,000 unique Excel-based threats
+
                 self.assertIsNotNone(fmt)
 
         logger.info(

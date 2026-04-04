@@ -37,12 +37,12 @@ def generate_chunks_for_job(job_id: str, chunk_size: int = 1000) -> int:
 
         chunk_index = 0
         if ext == ".csv":
-            # Fast streaming line count for 100M rows
+
             adapter.file_obj.seek(0)
-            # Count lines without loading into memory
-            total_rows = sum(1 for _ in adapter.file_obj) - 1  # Subtract 1 for header
+
+            total_rows = sum(1 for _ in adapter.file_obj) - 1
             adapter.file_obj.seek(0)
-            # Re-read header to advance DictReader/Iterator past it
+
             next(adapter.file_obj)
 
             num_chunks = (total_rows + chunk_size - 1) // chunk_size
@@ -61,7 +61,7 @@ def generate_chunks_for_job(job_id: str, chunk_size: int = 1000) -> int:
                 process_chunk.apply_async(args=[chunk.id], queue="light_tasks")
             chunk_index = num_chunks
         else:
-            # For Excel
+
             for _ in adapter.chunked_read(chunk_size=chunk_size):
                 start_row = (chunk_index * chunk_size) + 1
                 end_row = start_row + chunk_size - 1

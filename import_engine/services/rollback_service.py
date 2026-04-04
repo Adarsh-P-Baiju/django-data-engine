@@ -24,7 +24,7 @@ class RollbackService:
                 return False, msg
 
             with transaction.atomic():
-                # 1. Resolve the model class from the job's model_name
+
                 from import_engine.domain.config_registry import get_config
 
                 config = get_config(job.model_name)
@@ -33,20 +33,20 @@ class RollbackService:
 
                 model_class = config.model
 
-                # 2. Check if the model has a job_id tracking field
+
                 if not hasattr(model_class, "import_job"):
                     msg = f"Model {model_class.__name__} does not support rollback (missing import_job field)."
                     logger.error(f"Rollback: {msg}")
                     return False, msg
 
-                # 3. Delete all records created by this job
+
                 deleted_count, _ = model_class.objects.filter(import_job=job).delete()
 
-                # 4. Clean up logs and chunks
+
                 job.logs.all().delete()
                 job.chunks.all().delete()
 
-                # 5. Reset job stats
+
                 job.status = ImportJob.Status.PENDING
                 job.success_count = 0
                 job.failure_count = 0

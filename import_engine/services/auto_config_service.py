@@ -38,7 +38,7 @@ class AutoConfigService:
             if not headers:
                 return {"error": "No headers found in file."}
 
-            # Collect sample data
+
             sample_rows = []
             for _, row_dict in adapter.iter_rows(start_row=1, end_row=sample_size):
                 sample_rows.append(row_dict)
@@ -48,7 +48,7 @@ class AutoConfigService:
                 if not header:
                     continue
 
-                # Analyze values for this header across sample
+
                 values = [
                     row.get(header)
                     for row in sample_rows
@@ -84,11 +84,11 @@ class AutoConfigService:
         if not values:
             return "String", []
 
-        # 1. Check for Emails
+
         if all(re.match(r"[^@]+@[^@]+\.[^@]+", str(v)) for v in values):
             return "Email", ["email", "required"]
 
-        # 2. Check for Dates
+
         date_matches = 0
         for v in values:
             for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"):
@@ -101,7 +101,7 @@ class AutoConfigService:
         if values and date_matches / len(values) > 0.8:
             return "Date", ["date"]
 
-        # 3. Check for Numbers
+
         try:
             [float(v) for v in values]
             if all(str(v).isdigit() for v in values):
@@ -110,7 +110,7 @@ class AutoConfigService:
         except ValueError:
             pass
 
-        # 4. Check for Boolean/Enum (Low cardinality)
+
         unique_vals = set(str(v).lower() for v in values)
         if len(unique_vals) <= 5:
             return "Select", [f"in:{','.join(unique_vals)}"]
@@ -137,7 +137,7 @@ class AutoConfigService:
     def _suggest_model_name(cls, filename: str) -> str:
         """Suggests a model name based on the filename."""
         name = os.path.splitext(filename)[0]
-        # Remove timestamps, UUIDs, and common prefixes/suffixes
+
         name = re.sub(r"[_\-][0-9a-fA-F]{32}", "", name)
         name = re.sub(r"[_\-]\d{8}", "", name)
         return name.split("_")[0].split("-")[0].capitalize()

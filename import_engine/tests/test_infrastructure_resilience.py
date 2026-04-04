@@ -31,7 +31,7 @@ class InfrastructureResilienceTestCase(BaseImportTestCase):
             retry_count = random.randint(1, 5)
 
             with self.subTest(infra_id=iteration, failure=fail_type, retry=retry_count):
-                # Verify resilience logic
+
                 self.assertTrue(retry_count > 0)
 
         logger.info(

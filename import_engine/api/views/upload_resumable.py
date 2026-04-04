@@ -25,7 +25,7 @@ class ResumableUploadView(APIView):
             )
 
         try:
-            # Create a shell Job to track the upload
+
             job = ImportJob.objects.create(
                 model_name=model_name,
                 original_filename=filename,
@@ -57,7 +57,7 @@ class ResumableUploadView(APIView):
                 {"error": "Invalid Job ID"}, status=status.HTTP_404_NOT_FOUND
             )
 
-        # 1. Parse Content-Range header
+
         content_range = request.headers.get("Content-Range")
         if not content_range:
             return Response(
@@ -66,18 +66,18 @@ class ResumableUploadView(APIView):
             )
 
         try:
-            # Format: 'bytes <start>-<end>/<total>'
+
             range_info = content_range.replace("bytes ", "").split("/")
             byte_range = range_info[0].split("-")
             start_byte = int(byte_range[0])
-            # end_byte and total_bytes are validated but not strictly needed for append mode
+
         except Exception:
             return Response(
                 {"error": "Invalid Content-Range format"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # 2. Guard: Ensure sequential upload (Optional but safer for simple impl)
+
         if start_byte != job.processed_bytes:
             return Response(
                 {
@@ -87,7 +87,7 @@ class ResumableUploadView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        # 3. Stream chunk to disk (Append mode)
+
         os.makedirs("/tmp/uploads", exist_ok=True)
         if not job.local_path:
             job.local_path = os.path.join("/tmp/uploads", f"resumable_{job.id}.tmp")
@@ -95,24 +95,24 @@ class ResumableUploadView(APIView):
 
         try:
             with open(job.local_path, "ab") as f:
-                # Read from raw stream
+
                 chunk_data = request.body
                 f.write(chunk_data)
 
-            # 4. Update progress
+
             new_offset = job.processed_bytes + len(chunk_data)
             job.processed_bytes = new_offset
 
             if new_offset >= job.total_bytes:
-                # UPLOAD COMPLETE
+
                 job.status = ImportJob.Status.SCANNING
                 job.status_message = "Staging Complete. Commencing security scan."
                 job.file_fingerprint = compute_file_fingerprint(job.local_path)
 
-                # Make world-readable for ClamAV
+
                 os.chmod(job.local_path, 0o644)
 
-                # Dispatch scan
+
                 from import_engine.tasks.security_tasks import security_scan_task
 
                 security_scan_task.apply_async(args=[job.id], queue="heavy_tasks")

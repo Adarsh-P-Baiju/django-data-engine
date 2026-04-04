@@ -40,7 +40,7 @@ def process_chunk(self, chunk_id):
     """Processes a specific file chunk with sub-batch persistence."""
     start_time = time.time()
 
-    # 1. Initialization and Locked Status Update
+
     try:
         chunk = ImportChunk.objects.select_related("job").get(id=chunk_id)
         job = chunk.job
@@ -51,7 +51,7 @@ def process_chunk(self, chunk_id):
             chunk.save(update_fields=["status"])
             return
 
-        # Mark as processing early to prevent race conditions
+
         chunk.status = ImportChunk.Status.PROCESSING
         chunk.save(update_fields=["status", "updated_at"])
 
@@ -76,16 +76,16 @@ def process_chunk(self, chunk_id):
         resolver = FKResolver(config)
         empty_count = 0
 
-        # Sub-batching configuration
+
         SUB_BATCH_SIZE = 500
 
-        # Guard services
+
         from import_engine.services.dedupe_service import DedupeService
         from import_engine.services.load_guard import LoadGuardService
 
         deduper = DedupeService(job.model_name)
 
-        # Iterate over the specified range in the file
+
         row_iterator = adapter.iter_rows(
             start_row=chunk.start_row, end_row=chunk.end_row
         )
@@ -99,14 +99,14 @@ def process_chunk(self, chunk_id):
                 apply_mapping(rd, job.field_mapping, config) for rd in row_dicts
             ]
 
-            # Batch prefetch
+
             resolver.prefetch(mapped_rows)
 
             batch_instances = []
             batch_staging = []
             batch_logs = []
 
-            # Business key for Bloom Check (defaults to first column or 'id')
+
             business_key_field = getattr(
                 config, "business_key", next(iter(config.fields.keys()), "id")
             )
@@ -114,11 +114,11 @@ def process_chunk(self, chunk_id):
             for idx, (row_idx, row_dict, mapped_dict) in enumerate(
                 zip(row_indices, row_dicts, mapped_rows)
             ):
-                # Deduplication check
-                # We check the raw value before any mapping/validation to save CPU
+
+
                 b_val = str(mapped_dict.get(business_key_field, ""))
                 if b_val and deduper.is_duplicate(b_val):
-                    # Log deduplication event
+
                     batch_logs.append(
                         ImportLog(
                             job=job,
@@ -135,7 +135,7 @@ def process_chunk(self, chunk_id):
 
                 cleaned_data, errors = validate_row(config, mapped_dict)
 
-                # Resolve Foreign Keys
+
                 for fk_field, f_config in resolver.fk_fields.items():
                     val = mapped_dict.get(fk_field)
                     if val:
@@ -150,7 +150,7 @@ def process_chunk(self, chunk_id):
                         else:
                             cleaned_data[fk_field] = resolved_obj
 
-                # Load Guard Backpressure
+
                 LoadGuardService.throttle(factor=0.05)
 
                 if errors:
@@ -180,7 +180,7 @@ def process_chunk(self, chunk_id):
                         cleaned_data["import_job"] = job
                     batch_instances.append(config.model(**cleaned_data))
 
-            # Atomic Sub-batch Persistence
+
             with transaction.atomic():
                 if batch_instances:
                     conflict_res = getattr(config, "conflict_resolution", "fail")
@@ -206,9 +206,9 @@ def process_chunk(self, chunk_id):
                     else:
                         created_objs = bulk_persist(config.model, batch_instances)
 
-                    # Track IDs for revert support
+
                     if created_objs:
-                        # Extract IDs - bulk_persist returns individual objects for creation
+
                         new_ids = [
                             str(obj.pk) for obj in created_objs if hasattr(obj, "pk")
                         ]
@@ -249,7 +249,7 @@ def process_chunk(self, chunk_id):
             total_success += s
             total_failed += f
 
-        # Summary check for abort logic (only on first chunk to avoid overhead)
+
         if chunk.chunk_index == 0:
             total_processed = total_success + total_failed
             if total_processed > 0:
@@ -268,15 +268,15 @@ def process_chunk(self, chunk_id):
                 total_rows=F("total_rows") - empty_count
             )
 
-        # Finalize and Notify
+
         elapsed = time.time() - start_time
         processed_in_this_chunk = total_success + total_failed
 
-        # Update Job Metrics (Atomic Update)
+
         from django.utils import timezone
 
-        # We use F() expressions to ensure atomicity for processed_rows,
-        # but we need the current value for global ETA calculation
+
+
         job.refresh_from_db(fields=["processed_rows", "total_rows", "started_at"])
 
         if not job.started_at:
@@ -285,7 +285,7 @@ def process_chunk(self, chunk_id):
         new_processed_total = job.processed_rows + processed_in_this_chunk
         remaining_rows = max(0, job.total_rows - new_processed_total)
 
-        # Global Average Throughput since start
+
         total_elapsed = (timezone.now() - job.started_at).total_seconds()
         avg_throughput = new_processed_total / max(total_elapsed, 0.001)
         eta_seconds = int(remaining_rows / avg_throughput) if avg_throughput > 0 else 0
@@ -317,7 +317,7 @@ def process_chunk(self, chunk_id):
         }
         logger.info(metrics)
 
-        # Adaptive UI Throttling: Only send every N chunks or on final chunk
+
         total_chunks = job.chunks.count()
         if (
             chunk.chunk_index % max(1, total_chunks // 20) == 0
@@ -326,7 +326,7 @@ def process_chunk(self, chunk_id):
             send_progress_update(job.id, metrics)
 
     except Exception as exc:
-        # Resilience and Retry logic
+
         chunk.status = ImportChunk.Status.PENDING
         chunk.save(update_fields=["status", "updated_at"])
 
@@ -339,7 +339,7 @@ def process_chunk(self, chunk_id):
             }
         )
 
-        # Avoid infinite retry loops on non-transient errors if possible
+
         if isinstance(exc, (IntegrityError, ValueError)):
             chunk.status = ImportChunk.Status.FAILED
             chunk.save(update_fields=["status"])
@@ -378,7 +378,7 @@ def check_job_completion(job_id):
     pending_chunks = job.chunks.exclude(status=ImportChunk.Status.DONE).exists()
 
     if not pending_chunks:
-        # Final aggregation
+
         job.failure_count = ImportLog.objects.filter(job=job).count()
         job.success_count = job.total_rows - job.failure_count
         job.finished_at = timezone.now()
@@ -399,18 +399,18 @@ def check_job_completion(job_id):
             ]
         )
 
-        # Generate and store diagnostic report
+
         report = DiagnosticService.generate_report(str(job.id))
         summary_md = DiagnosticService.format_report_as_markdown(report)
 
-        # Audit Proof of Ingestion
+
         from import_engine.services.audit_service import AuditTraceabilityService
 
         proof_json = AuditTraceabilityService.generate_proof_of_ingestion(str(job.id))
 
-        full_status = f"{summary_md}\n\n### Audit Log\n```json\n{proof_json}\n```"
+        full_status = f"{summary_md}\n\n
 
-        # Store summary in status message for Admin visibility
+
         job.status_message = full_status
         job.save(update_fields=["status_message"])
 
@@ -418,7 +418,7 @@ def check_job_completion(job_id):
             f"Job {job.id} Finalized. Performance: {report['metrics']['avg_throughput_rows_sec']} rows/sec"
         )
 
-        # Trigger cleanup if not in debug
+
         from django.conf import settings
 
         if not getattr(settings, "DEBUG", False):

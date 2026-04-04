@@ -39,7 +39,7 @@ class SecurityVectorTestCase(BaseImportTestCase):
             "....//....//etc/shadow",
         ]
 
-        # Combinatorial Security Matrix
+
         iteration = 0
         max_iterations = 20
 
@@ -47,17 +47,17 @@ class SecurityVectorTestCase(BaseImportTestCase):
 
         while iteration < max_iterations:
             iteration += 1
-            # Generate a unique malicious string
+
             base = random.choice(templates)
             noise = "".join(random.choices(string.ascii_letters + string.digits, k=10))
             payload = f"{base}_{noise}_{iteration}"
 
             with self.subTest(vector_id=iteration, type="Security"):
-                # We test if the DSL validator correctly handles/rejects these or if they cause crashes
+
                 validator = DSLValidator(f"sec_field_{iteration}", ["required"], None)
                 try:
                     validator.validate(payload, {})
                 except Exception:
-                    pass  # We expect rejection or safe handling, not internal engine failure
+                    pass
 
         logger.info(f"Security: Completed {iteration} unique penetration vectors.")

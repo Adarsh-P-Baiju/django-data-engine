@@ -49,8 +49,8 @@ class VirusScanner:
     def close(self):
         """Explicitly close the network socket."""
         if self._scanner:
-            # pyclamd doesn't have an explicit close, but we can clear the reference
-            # For persistent connections, we'd need to handle this more robustly
+
+
             self._scanner = None
 
 
@@ -63,7 +63,7 @@ def mask_pii(row_dict: Dict[str, Any], config: Any) -> Dict[str, Any]:
     for field_name, field_cfg in config.fields.items():
         if isinstance(field_cfg, dict) and field_cfg.get("pii"):
             label = field_cfg.get("label", field_name)
-            # Mask both the raw label (if present) and the field name
+
             if label in safe_data:
                 safe_data[label] = "*** MASKED ***"
             if field_name in safe_data:

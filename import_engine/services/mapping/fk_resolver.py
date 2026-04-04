@@ -20,7 +20,7 @@ class FKResolver:
             for f_name, f_config in config.fields.items()
             if isinstance(f_config, dict) and "fk" in f_config
         }
-        # Local identity maps: field_name -> lookup_value -> instance
+
         self._cache: Dict[str, Dict[Any, models.Model]] = defaultdict(dict)
 
     def prefetch(self, rows_data: List[Dict[str, Any]]):
@@ -43,12 +43,12 @@ class FKResolver:
                 fk_reg_config, "lookup_field", f_config.get("lookup", "name")
             )
 
-            # 1. Identify distinct values needed
+
             values_needed = {row.get(f_name) for row in rows_data if row.get(f_name)}
             if not values_needed:
                 continue
 
-            # 2. Bulk Fetch Existing Refs
+
             existing_objs = model.objects.filter(
                 **{f"{lookup_field}__in": values_needed}
             ).only("id", lookup_field)
@@ -57,7 +57,7 @@ class FKResolver:
                 val = getattr(obj, lookup_field)
                 self._cache[f_name][val] = obj
 
-            # 3. Handle Auto-Creation for Missing Values
+
             if f_config.get("create_if_missing"):
                 missing_values = values_needed - set(self._cache[f_name].keys())
                 if missing_values:
@@ -73,17 +73,17 @@ class FKResolver:
         new_objs = []
         for val in missing_values:
             kwargs = {lookup_field: val, **defaults}
-            # Auto-generate 'code' if model has it and not provided
+
             if "code" not in kwargs and hasattr(model, "code"):
                 kwargs["code"] = str(val)[:10].upper()
             new_objs.append(model(**kwargs))
 
         try:
             with transaction.atomic():
-                # use ignore_conflicts to handle race conditions where another worker created it
+
                 model.objects.bulk_create(new_objs, ignore_conflicts=True)
 
-                # Re-query inside the transaction to ensure we get the IDs for our cache
+
                 created_objs = model.objects.filter(
                     **{f"{lookup_field}__in": missing_values}
                 ).only("id", lookup_field)

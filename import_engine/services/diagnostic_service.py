@@ -14,7 +14,7 @@ class DiagnosticService:
         try:
             job = ImportJob.objects.get(id=job_id)
 
-            # 1. Error Analysis (Top 5 failure reasons)
+
             error_summary = (
                 ImportLog.objects.filter(job=job)
                 .values("errors")
@@ -22,7 +22,7 @@ class DiagnosticService:
                 .order_by("-count")[:5]
             )
 
-            # 2. Performance Summary
+
             duration = 0
             if job.started_at and job.finished_at:
                 duration = (job.finished_at - job.started_at).total_seconds()
@@ -63,7 +63,7 @@ class DiagnosticService:
     def format_report_as_markdown(cls, report: dict) -> str:
         """Helper to create a human-readable summary for the admin/logs."""
         if "error" in report:
-            return "## ❌ Diagnostic Report Failed"
+            return "
 
         m = report["metrics"]
         errs = "\n".join(
@@ -74,16 +74,16 @@ class DiagnosticService:
         )
 
         return f"""
-# 📋 Import Diagnostic Report: {report["job_id"]}
 
-### 📈 Performance Summary
+
+
 - **Status**: {report["status"]}
 - **Total Rows**: {m["total_rows"]}
 - **Success Rate**: {round((m["success"] / m["total_rows"]) * 100, 2) if m["total_rows"] > 0 else 0}%
 - **Avg Speed**: {m["avg_throughput_rows_sec"]} rows/sec
 - **Total Duration**: {m["duration_seconds"]}s
 
-### 🚨 Top Failure Reasons
+
 {errs if errs else "No errors detected."}
 
 ---

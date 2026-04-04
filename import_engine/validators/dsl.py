@@ -24,29 +24,29 @@ class DSLValidator:
         Passes the entire row_data for cross-field context.
         """
         for rule_str in self.rules:
-            # 1. Handle "required" as a special case for empty values
+
             if rule_str == "required" and (value is None or str(value).strip() == ""):
                 raise ValidationError(f"Field '{self.field_name}' is required.")
 
             if value is None or str(value).strip() == "":
                 continue
 
-            # 2. Parse Parameterized Rules (e.g., "min:10", "in:a,b,c")
+
             parts = rule_str.split(":", 1)
             rule_name = parts[0]
             params = parts[1] if len(parts) > 1 else None
 
-            # 3. Rule Dispatch
+
             handler = getattr(self, f"_rule_{rule_name}", None)
             if handler:
                 handler(value, params, row_data)
             elif rule_name == "encrypt":
-                # Regulatory encryption
+
                 from import_engine.services.encryption_service import EncryptionService
 
                 value = EncryptionService.encrypt(value)
             else:
-                # Fallback to simple regex-based common rules
+
                 self._handle_common_rules(rule_name, value)
 
         return value
@@ -83,7 +83,7 @@ class DSLValidator:
             if current_date <= other_date:
                 raise ValidationError(f"Must be after {params} ({other_val})")
         except (ValueError, TypeError):
-            pass  # Date parsing errors handled by 'date' rule
+            pass
 
     def _handle_common_rules(self, rule_name, value):
         if rule_name == "email":
@@ -115,7 +115,7 @@ def validate_row(
     errors = {}
 
     for f_name, f_config in config.fields.items():
-        # DSL can be a simple list of strings or a dict with mapping/rules
+
         if isinstance(f_config, list):
             rules = f_config
         elif isinstance(f_config, dict):
@@ -133,7 +133,7 @@ def validate_row(
         except ValidationError as e:
             errors[f_name] = e.messages[0]
         except Exception as e:
-            # Catch unexpected errors to prevent whole chunk failure
+
             logger.error(f"Validator Panic on field '{f_name}': {e}")
             errors[f_name] = "Incompatible data type for validation."
 

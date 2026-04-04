@@ -13,7 +13,7 @@ def generate_fuzzy_mapping(
     expected_field_names = list(config_fields.keys())
     unmapped_expected = set(expected_field_names)
 
-    # 1. Exact Name/Label Match
+
     unmapped_raw = []
     for raw in raw_headers:
         if not raw:
@@ -39,12 +39,12 @@ def generate_fuzzy_mapping(
         if not matched:
             unmapped_raw.append(raw)
 
-    # 2. Fuzzy Match for remaining
+
     for raw in unmapped_raw:
         if not unmapped_expected:
             break
 
-        # Use a high threshold for fuzzy matching to avoid incorrect auto-mapping
+
         best_match, score = process.extractOne(str(raw), list(unmapped_expected))
         if score >= 85:
             mapping[raw] = best_match
@@ -63,7 +63,7 @@ def apply_mapping(
     if field_mapping:
         return {field_mapping[k]: v for k, v in row_dict.items() if k in field_mapping}
 
-    # Fallback to label-based mapping if no explicit mapping exists
+
     label_to_field = {
         (f_cfg.get("label") if isinstance(f_cfg, dict) else f_name): f_name
         for f_name, f_cfg in config.fields.items()

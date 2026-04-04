@@ -60,7 +60,8 @@ class PremiumTestResult(unittest.TextTestResult):
 
         outcome = "SUCCESS: Integrity verified."
         if err:
-            outcome = f"FAILURE: {str(err).split('\\n')[0]}"
+            err_msg = str(err).split("\n")[0]
+            outcome = f"FAILURE: {err_msg}"
 
         return {"objective": objective, "logic": logic_trace, "outcome": outcome}
 
@@ -81,12 +82,12 @@ class PremiumTestResult(unittest.TextTestResult):
             else {"val": str(raw_params)}
         )
 
-        # Generate the technical summary
+
         story = self.generate_narrative(test._testMethodName, params, err)
 
         self.results_data.append(
             {
-                "id": f"{test._testMethodName} #{self.subtest_count}",
+                "id": f"{test._testMethodName}
                 "st": status,
                 "meta": params,
                 "story": story,
@@ -180,53 +181,53 @@ class PremiumReportRunner(DiscoverRunner):
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <style>
         :root {{
-            --primary: #c084fc;
-            --secondary: #22d3ee;
-            --success: #10b981;
-            --danger: #f43f5e;
-            --bg: #010409;
+            --primary:
+            --secondary:
+            --success:
+            --danger:
+            --bg:
             --panel: rgba(13, 17, 23, 0.98);
         }}
         body {{
-            background: #010409; color: #f0f6fc; font-family: 'Outfit', sans-serif;
+            background:
             margin: 0; padding: 2.5rem; display: flex; flex-direction: column; gap: 2.5rem;
             height: 100vh; overflow: hidden; box-sizing: border-box;
         }}
-        .glass {{ background: var(--panel); backdrop-filter: blur(80px); border: 1px solid #30363d; border-radius: 2rem; padding: 2.5rem; box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 1); }}
+        .glass {{ background: var(--panel); backdrop-filter: blur(80px); border: 1px solid
         .header {{ display: flex; justify-content: space-between; align-items: flex-end; }}
-        h1 {{ margin: 0; font-size: 3rem; font-weight: 800; letter-spacing: -2px; background: linear-gradient(to right, #8b5cf6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }}
+        h1 {{ margin: 0; font-size: 3rem; font-weight: 800; letter-spacing: -2px; background: linear-gradient(to right,
         .stat-grid {{ display: flex; gap: 4rem; }}
         .stat-item {{ border-left: 2px solid var(--primary); padding-left: 1.5rem; }}
         .stat-val {{ font-size: 2.5rem; font-weight: 800; line-height: 1; }}
         .stat-lbl {{ font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2.5px; opacity: 0.5; margin-top: 8px; font-weight: 700; }}
-        .main-frame {{ flex-grow: 1; overflow-y: auto; border-radius: 1.5rem; position: relative; border: 1px solid #30363d; }}
+        .main-frame {{ flex-grow: 1; overflow-y: auto; border-radius: 1.5rem; position: relative; border: 1px solid
         table {{ width: 100%; border-collapse: separate; border-spacing: 0; }}
-        th {{ position: sticky; top: 0; background: #161b22; padding: 1.5rem; text-align: left; font-size: 0.7rem; text-transform: uppercase; color: #8b949e; border-bottom: 1px solid #30363d; z-index: 10; font-weight: 800; letter-spacing: 1px; }}
-        td {{ padding: 1.5rem; border-bottom: 1px solid #21262d; font-size: 0.9rem; vertical-align: middle; }}
-        
-        .mono {{ font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #8b949e; }}
-        .narrative-brief {{ color: #e2e8f0; font-weight: 600; line-height: 1.5; max-width: 500px; display: block; margin-bottom: 8px; }}
-        
+        th {{ position: sticky; top: 0; background:
+        td {{ padding: 1.5rem; border-bottom: 1px solid
+
+        .mono {{ font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color:
+        .narrative-brief {{ color:
+
         .deep-dive-btn {{
-            background: linear-gradient(135deg, #1d4ed8, #7c3aed);
+            background: linear-gradient(135deg,
             border: none; color: white; padding: 10px 20px; border-radius: 12px;
             font-size: 0.7rem; font-weight: 800; cursor: pointer; text-transform: uppercase;
             letter-spacing: 1.5px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }}
         .deep-dive-btn:hover {{ transform: scale(1.05) translateY(-2px); box-shadow: 0 10px 20px rgba(124, 58, 237, 0.3); }}
-        
-        .badge {{ padding: 6px 14px; border-radius: 10px; font-weight: 800; font-size: 0.7rem; border: 1px solid rgba(255,255,255,0.05); }}
-        .badge-passed {{ color: #a3e635; background: rgba(163, 230, 21, 0.1); }}
-        .badge-failed {{ color: #f87171; background: rgba(248, 113, 113, 0.1); }}
 
-        #m-overlay {{ display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 1000; backdrop-filter: blur(20px); align-items: center; justify-content: center; }}
-        #m-modal {{ width: 90%; max-width: 1200px; max-height: 85vh; background: #0d1117; border: 1px solid #30363d; border-radius: 2.5rem; padding: 4rem; display: flex; flex-direction: column; gap: 3rem; overflow: hidden; }}
-        .modal-header {{ display: flex; justify-content: space-between; border-bottom: 1px solid #30363d; padding-bottom: 2rem; }}
+        .badge {{ padding: 6px 14px; border-radius: 10px; font-weight: 800; font-size: 0.7rem; border: 1px solid rgba(255,255,255,0.05); }}
+        .badge-passed {{ color:
+        .badge-failed {{ color:
+
+
+
+        .modal-header {{ display: flex; justify-content: space-between; border-bottom: 1px solid
         .modal-body {{ overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; }}
-        .section-card {{ background: #161b22; border: 1px solid #30363d; border-radius: 1.5rem; padding: 2rem; position: relative; }}
+        .section-card {{ background:
         .section-label {{ font-size: 0.75rem; text-transform: uppercase; color: var(--primary); font-weight: 800; margin-bottom: 15px; letter-spacing: 2px; }}
-        .story-text {{ font-size: 1.1rem; line-height: 1.7; color: #c9d1d9; font-weight: 400; }}
-        pre {{ margin: 0; white-space: pre-wrap; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #8b949e; line-height: 1.6; }}
+        .story-text {{ font-size: 1.1rem; line-height: 1.7; color:
+        pre {{ margin: 0; white-space: pre-wrap; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color:
     </style>
 </head>
 <body>
@@ -234,15 +235,15 @@ class PremiumReportRunner(DiscoverRunner):
         <div id="m-modal" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div>
-                    <h2 id="mt-id" style="margin:0; font-size:2.5rem; font-weight:800; color:#fff">FORENSIC_SCOPE</h2>
+                    <h2 id="mt-id" style="margin:0; font-size:2.5rem; font-weight:800; color:
                     <div id="mt-sub" class="mono" style="margin-top:10px; font-size:0.8rem; opacity:0.5">COMPUTATIONAL_SEQUENCE_ALPHA</div>
                 </div>
                 <button class="deep-dive-btn" onclick="closeM()" style="padding: 15px 30px">Exit</button>
             </div>
             <div class="modal-body">
-                <div class="section-card" style="grid-column: span 2; background: linear-gradient(to right, #161b22, #0d1117); border-left: 5px solid var(--primary);">
+                <div class="section-card" style="grid-column: span 2; background: linear-gradient(to right,
                     <div class="section-label">Technical Narrative</div>
-                    <div id="ms-obj" class="story-text" style="font-weight: 800; color: #fff; margin-bottom: 15px;"></div>
+                    <div id="ms-obj" class="story-text" style="font-weight: 800; color:
                     <div id="ms-log" class="story-text" style="margin-bottom: 15px; opacity: 0.8;"></div>
                     <div id="ms-out" class="story-text" style="color: var(--secondary); font-weight: 600;"></div>
                 </div>
@@ -324,20 +325,20 @@ class PremiumReportRunner(DiscoverRunner):
             const r = store[i];
             document.getElementById('mt-id').innerText = r.id;
             document.getElementById('mt-sub').innerText = `VECTOR_NODE_${{i+1}} | RESONANCE: ${{r.lat}}s | RAM_FLUX: ${{r.ram}}MB`;
-            
+
             document.getElementById('ms-obj').innerText = r.story.objective;
             document.getElementById('ms-log').innerText = r.story.logic;
             document.getElementById('ms-out').innerText = r.story.outcome;
-            
+
             document.getElementById('ml-logs').innerText = r.logs;
             document.getElementById('ml-meta').innerText = JSON.stringify(r.meta, null, 4);
             document.getElementById('ml-sql').innerText = r.queries.join('\\n\\n') || 'ZERO_SQL_TRACES';
-            
+
             document.getElementById('m-overlay').style.display = 'flex';
         }}
 
         function closeM() {{ document.getElementById('m-overlay').style.display = 'none'; }}
-        
+
         if(store.length) {{ draw(); draw(); draw(); }}
         frame.addEventListener('scroll', () => {{
             if(frame.scrollTop + frame.clientHeight >= frame.scrollHeight - 1500 && ptr < store.length) draw();
