@@ -106,17 +106,17 @@ urlpatterns = [
 Register your model with a configuration block in `apps.py` or a dedicated `imports.py`:
 
 ```python
-from import_engine.domain.config_registry import ImportConfig, register_config
+from import_engine.domain.config_registry import BaseImportConfig, register_import
 from myapp.models import Employee
 
-register_config(ImportConfig(
-    model=Employee,
-    fields={
+@register_import("employee")
+class EmployeeImportConfig(BaseImportConfig):
+    model = Product
+    fields = {
         "full_name":  {"label": "Employee Name", "rules": ["required"]},
         "email":      {"label": "Email", "rules": ["required", "email"]},
         "department": {"label": "Department", "fk": "Department", "lookup": "name"},
     }
-))
 ```
 
 ---

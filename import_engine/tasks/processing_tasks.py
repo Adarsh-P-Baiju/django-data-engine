@@ -408,8 +408,7 @@ def check_job_completion(job_id):
 
         proof_json = AuditTraceabilityService.generate_proof_of_ingestion(str(job.id))
 
-        full_status = f"{summary_md}\n\n
-
+        full_status = f"{summary_md}\n\nProof of Ingestion: {proof_json}"
 
         job.status_message = full_status
         job.save(update_fields=["status_message"])
