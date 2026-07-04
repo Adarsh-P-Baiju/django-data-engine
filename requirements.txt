@@ -16,5 +16,5 @@ channels>=4.0
 channels-redis>=4.2
 daphne>=4.1
 uvicorn>=0.23
-gunicorn>=21.2
+gunicorn>=26.0.0
 cryptography>=41.0
