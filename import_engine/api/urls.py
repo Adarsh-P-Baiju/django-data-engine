@@ -1,9 +1,11 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
-from .views.upload_views import ModelImportViewSet
+
+from import_engine.views.monitor import TestReportDetailView, TestReportListView
+
 from .views.manage_views import ImportJobViewSet
 from .views.upload_resumable import ResumableUploadView
-from import_engine.views.monitor import TestReportListView, TestReportDetailView
+from .views.upload_views import ModelImportViewSet
 
 router = DefaultRouter()
 router.register(r"jobs", ImportJobViewSet, basename="job")
