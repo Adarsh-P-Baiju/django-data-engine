@@ -1,4 +1,5 @@
 from django.db import models
+
 from import_engine.domain.models import ImportJob
 
 
