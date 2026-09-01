@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from import_engine.domain.models import ImportJob, ImportChunk, ImportLog
+
+from import_engine.domain.models import ImportChunk, ImportJob, ImportLog
 
 
 class ImportJobSerializer(serializers.ModelSerializer):
