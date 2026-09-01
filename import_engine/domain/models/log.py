@@ -1,6 +1,7 @@
 from django.db import models
-from .job import ImportJob
+
 from .chunk import ImportChunk
+from .job import ImportJob
 
 
 class ImportLog(models.Model):
