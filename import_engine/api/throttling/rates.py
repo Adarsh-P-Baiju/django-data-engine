@@ -1,5 +1,4 @@
-from rest_framework.throttling import UserRateThrottle
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 
 class UploadUserRateThrottle(UserRateThrottle):
