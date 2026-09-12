@@ -1,13 +1,14 @@
 import logging
-from typing import Dict, List, Any
+from typing import Any
+
 from thefuzz import process
 
 logger = logging.getLogger(__name__)
 
 
 def generate_fuzzy_mapping(
-    raw_headers: List[str], config_fields: Dict[str, Any]
-) -> Dict[str, str]:
+    raw_headers: list[str], config_fields: dict[str, Any]
+) -> dict[str, str]:
     """Resolves raw headers to model fields via fuzzy matching."""
     mapping = {}
     expected_field_names = list(config_fields.keys())
@@ -57,8 +58,8 @@ def generate_fuzzy_mapping(
 
 
 def apply_mapping(
-    row_dict: Dict[str, Any], field_mapping: Dict[str, str], config: Any
-) -> Dict[str, Any]:
+    row_dict: dict[str, Any], field_mapping: dict[str, str], config: Any
+) -> dict[str, Any]:
     """Applies a field mapping to a raw row dictionary."""
     if field_mapping:
         return {field_mapping[k]: v for k, v in row_dict.items() if k in field_mapping}
