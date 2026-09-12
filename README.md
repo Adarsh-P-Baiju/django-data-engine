@@ -170,15 +170,17 @@ Register your model with the config registry in `import_engine/domain/config_reg
 from import_engine.domain.config_registry import ImportConfig, register_config
 from myapp.models import Employee
 
-register_config(ImportConfig(
-    model=Employee,
-    fields={
-        "full_name":  {"label": "Employee Name", "rules": ["required"]},
-        "email":      {"label": "Email", "rules": ["required", "email"]},
-        "department": {"label": "Department", "fk": "Department", "lookup": "name"},
-        "role":       {"label": "Rank / Role", "fk": "Role", "lookup": "title"},
-    }
-))
+register_config(
+    ImportConfig(
+        model=Employee,
+        fields={
+            "full_name": {"label": "Employee Name", "rules": ["required"]},
+            "email": {"label": "Email", "rules": ["required", "email"]},
+            "department": {"label": "Department", "fk": "Department", "lookup": "name"},
+            "role": {"label": "Rank / Role", "fk": "Role", "lookup": "title"},
+        },
+    )
+)
 ```
 
 ---

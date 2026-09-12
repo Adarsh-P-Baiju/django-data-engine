@@ -1,6 +1,7 @@
 import logging
+from typing import Any
+
 import pyclamd
-from typing import Dict, Any, Tuple, Optional
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ class VirusScanner:
     def __init__(self):
         self.host = getattr(settings, "CLAMAV_HOST", "clamav")
         self.port = int(getattr(settings, "CLAMAV_PORT", 3310))
-        self._scanner: Optional[pyclamd.ClamdNetworkSocket] = None
+        self._scanner: pyclamd.ClamdNetworkSocket | None = None
 
     def __enter__(self):
         return self
@@ -30,7 +31,7 @@ class VirusScanner:
                 raise RuntimeError(f"Could not connect to ClamAV daemon: {e}")
         return self._scanner
 
-    def scan_file(self, file_path: str) -> Tuple[bool, Optional[str]]:
+    def scan_file(self, file_path: str) -> tuple[bool, str | None]:
         """
         Scans a file and returns (is_clean, virus_name).
         """
@@ -54,7 +55,7 @@ class VirusScanner:
             self._scanner = None
 
 
-def mask_pii(row_dict: Dict[str, Any], config: Any) -> Dict[str, Any]:
+def mask_pii(row_dict: dict[str, Any], config: Any) -> dict[str, Any]:
     """
     Advanced PII masking based on model configuration.
     Centralizes all masking logic to ensure consistency across logs and metrics.
