@@ -2,8 +2,9 @@ import itertools
 import logging
 import random
 import string
-from import_engine.validators.dsl import DSLValidator
+
 from import_engine.tests.base import BaseImportTestCase
+from import_engine.validators.dsl import DSLValidator
 
 logger = logging.getLogger(__name__)
 

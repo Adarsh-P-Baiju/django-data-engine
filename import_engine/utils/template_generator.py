@@ -1,8 +1,9 @@
 import io
+
 from openpyxl import Workbook
-from openpyxl.worksheet.datavalidation import DataValidation
-from openpyxl.styles import Font, PatternFill
 from openpyxl.comments import Comment
+from openpyxl.styles import Font, PatternFill
+from openpyxl.worksheet.datavalidation import DataValidation
 
 
 def generate_template(config) -> io.BytesIO:
