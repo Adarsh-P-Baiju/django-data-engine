@@ -1,7 +1,8 @@
-import re
 import logging
+import re
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any
+
 from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -13,12 +14,12 @@ class DSLValidator:
     Supports atomic rules, parameterized rules, and row-aware cross-field validation.
     """
 
-    def __init__(self, field_name: str, rules: List[str], config: Any):
+    def __init__(self, field_name: str, rules: list[str], config: Any):
         self.field_name = field_name
         self.rules = rules
         self.config = config
 
-    def validate(self, value: Any, row_data: Dict[str, Any]) -> Any:
+    def validate(self, value: Any, row_data: dict[str, Any]) -> Any:
         """
         Executes all registered rules against the field value.
         Passes the entire row_data for cross-field context.
@@ -105,8 +106,8 @@ class DSLValidator:
 
 
 def validate_row(
-    config, row_data: Dict[str, Any]
-) -> Tuple[Dict[str, Any], Dict[str, str]]:
+    config, row_data: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, str]]:
     """
     Validates a complete row using the configured DSL fields and rules.
     Returns (cleaned_data, error_dict).
