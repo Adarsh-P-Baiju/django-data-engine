@@ -1,5 +1,6 @@
-from django.test import TransactionTestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TransactionTestCase
+
 from import_engine.domain.models import ImportJob, ImportLog
 
 
