@@ -1,6 +1,7 @@
-from rest_framework.views import APIView
-from import_engine.api.mixins import ImportMixin
 from drf_spectacular.utils import extend_schema
+from rest_framework.views import APIView
+
+from import_engine.api.mixins import ImportMixin
 
 
 class EmployeeImportAPIView(ImportMixin, APIView):

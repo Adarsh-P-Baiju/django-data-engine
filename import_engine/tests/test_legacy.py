@@ -1,12 +1,13 @@
 from unittest.mock import patch
-from django.test import TestCase
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.exceptions import ValidationError
 
-from import_engine.services.upload_service import handle_upload
-from import_engine.domain.models import ImportJob
-from import_engine.domain.config_registry import register_import, BaseImportConfig
+from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import models
+from django.test import TestCase
+
+from import_engine.domain.config_registry import BaseImportConfig, register_import
+from import_engine.domain.models import ImportJob
+from import_engine.services.upload_service import handle_upload
 
 
 class DummyModel(models.Model):
