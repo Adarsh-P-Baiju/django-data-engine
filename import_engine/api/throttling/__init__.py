@@ -1,6 +1,6 @@
-from .rates import UploadUserRateThrottle, UploadAnonRateThrottle
+from .rates import UploadAnonRateThrottle, UploadUserRateThrottle
 
 __all__ = [
-    "UploadUserRateThrottle",
     "UploadAnonRateThrottle",
+    "UploadUserRateThrottle",
 ]

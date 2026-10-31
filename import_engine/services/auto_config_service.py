@@ -1,8 +1,8 @@
+import logging
 import os
 import re
-import logging
-from typing import Dict, List, Any, Tuple
 from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class AutoConfigService:
     @classmethod
     def analyze_file(
         cls, file_obj, original_filename: str, sample_size: int = 100
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Reads a sample of the file and returns an inferred configuration.
         """
@@ -78,8 +78,8 @@ class AutoConfigService:
 
     @classmethod
     def _infer_field_metadata(
-        cls, header: str, values: List[Any]
-    ) -> Tuple[str, List[str]]:
+        cls, header: str, values: list[Any]
+    ) -> tuple[str, list[str]]:
         """Infers the data type and potential DSL rules for a field."""
         if not values:
             return "String", []

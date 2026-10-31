@@ -1,6 +1,7 @@
 import logging
 import random
 import uuid
+
 from import_engine.tests.base import BaseImportTestCase
 
 logger = logging.getLogger(__name__)

@@ -1,11 +1,12 @@
-import os
 import logging
+import os
 
 from django.db import transaction
-from import_engine.domain.models import ImportJob, ImportChunk
+
+from import_engine.domain.config_registry import get_config
+from import_engine.domain.models import ImportChunk, ImportJob
 from import_engine.parsing.csv_adapter import CSVAdapter
 from import_engine.parsing.excel_adapter import ExcelAdapter
-from import_engine.domain.config_registry import get_config
 from import_engine.services.header_mapper import generate_fuzzy_mapping
 
 logger = logging.getLogger(__name__)

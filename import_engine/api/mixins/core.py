@@ -1,15 +1,16 @@
 import logging
+
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse
+from drf_spectacular.utils import OpenApiResponse, OpenApiTypes, extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiTypes
 
-from import_engine.services.upload_service import handle_upload, handle_streaming_upload
+from import_engine.api.throttling import UploadAnonRateThrottle, UploadUserRateThrottle
 from import_engine.domain.config_registry import get_config
+from import_engine.services.upload_service import handle_streaming_upload, handle_upload
 from import_engine.utils.template_generator import generate_template
-from import_engine.api.throttling import UploadUserRateThrottle, UploadAnonRateThrottle
 
 logger = logging.getLogger(__name__)
 

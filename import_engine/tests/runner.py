@@ -1,18 +1,18 @@
-import os
-import time
 import datetime
-import unittest
 import json
 import logging
+import os
+import time
+import unittest
 from io import StringIO
 
 try:
     import psutil
 except ImportError:
     psutil = None
-from django.test.runner import DiscoverRunner
 from django.conf import settings
 from django.db import connection
+from django.test.runner import DiscoverRunner
 
 
 class ForensicLogHandler(logging.Handler):

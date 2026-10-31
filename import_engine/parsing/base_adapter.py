@@ -14,7 +14,6 @@ class BaseParserAdapter(ABC):
         """
         Yields (row_index, dict_of_row_data)
         """
-        pass
 
     @abstractmethod
     def chunked_read(self, chunk_size=1000):
