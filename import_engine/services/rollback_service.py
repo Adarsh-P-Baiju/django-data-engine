@@ -1,6 +1,7 @@
 import logging
-from typing import Tuple
+
 from django.db import transaction
+
 from import_engine.domain.models import ImportJob
 
 logger = logging.getLogger(__name__)
@@ -10,7 +11,7 @@ class RollbackService:
     """Provides atomic, job-level recovery for data imports."""
 
     @staticmethod
-    def rollback_job(job_id: str) -> Tuple[bool, str]:
+    def rollback_job(job_id: str) -> tuple[bool, str]:
         """
         Atomically rolls back an entire import job.
         Deletes all records created by this job across all target models.

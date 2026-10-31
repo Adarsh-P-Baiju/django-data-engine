@@ -1,7 +1,7 @@
-from .core import ImportJobSerializer, ImportChunkSerializer, ImportLogSerializer
+from .core import ImportChunkSerializer, ImportJobSerializer, ImportLogSerializer
 
 __all__ = [
-    "ImportJobSerializer",
     "ImportChunkSerializer",
+    "ImportJobSerializer",
     "ImportLogSerializer",
 ]

@@ -1,7 +1,9 @@
-import os
 import logging
+import os
+
 from celery import shared_task
 from django.conf import settings
+
 from import_engine.domain.models import ImportJob
 from import_engine.services.security_service import VirusScanner
 

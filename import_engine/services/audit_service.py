@@ -1,9 +1,11 @@
+import hashlib
 import json
 import logging
-import hashlib
+
 from django.db import transaction
 from django.utils import timezone
-from import_engine.domain.models import ImportJob, ImportChunk
+
+from import_engine.domain.models import ImportChunk, ImportJob
 
 logger = logging.getLogger(__name__)
 
