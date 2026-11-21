@@ -1,5 +1,6 @@
 from import_engine.domain.config_registry import BaseImportConfig, register_import
-from .models import Employee, Department, Role, Product
+
+from .models import Department, Employee, Product, Role
 
 
 @register_import("Department")
