@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .domain.models import ImportJob, ImportChunk, ImportLog
+
+from .domain.models import ImportChunk, ImportJob, ImportLog
 
 
 @admin.register(ImportJob)
