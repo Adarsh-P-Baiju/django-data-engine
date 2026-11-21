@@ -1,16 +1,16 @@
-import os
 import hashlib
-import tempfile
 import logging
+import os
 import shutil
+import tempfile
 
 from django.db import transaction
 
-from import_engine.domain.models import ImportJob
 from import_engine.api.file_validators import (
-    validate_file_size,
     validate_file_extension,
+    validate_file_size,
 )
+from import_engine.domain.models import ImportJob
 
 logger = logging.getLogger(__name__)
 
