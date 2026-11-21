@@ -1,8 +1,10 @@
-import os
 import logging
+import os
+from datetime import timedelta
+
 from celery import shared_task
 from django.utils import timezone
-from datetime import timedelta
+
 from import_engine.domain.models import ImportJob
 
 logger = logging.getLogger(__name__)

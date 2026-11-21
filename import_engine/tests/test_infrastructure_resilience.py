@@ -1,5 +1,6 @@
 import logging
 import random
+
 from import_engine.tests.base import BaseImportTestCase
 
 logger = logging.getLogger(__name__)
