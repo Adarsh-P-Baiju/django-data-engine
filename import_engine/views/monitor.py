@@ -1,8 +1,9 @@
 import os
+
+from django.conf import settings
+from django.http import Http404, HttpResponse
 from django.views import View
 from django.views.generic import TemplateView
-from django.http import HttpResponse, Http404
-from django.conf import settings
 
 
 class TestReportListView(TemplateView):
