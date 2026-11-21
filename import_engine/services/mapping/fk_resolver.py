@@ -1,7 +1,9 @@
 import logging
 from collections import defaultdict
-from typing import Dict, List, Any, Optional
-from django.db import transaction, models
+from typing import Any
+
+from django.db import models, transaction
+
 from import_engine.domain.config_registry import get_config
 
 logger = logging.getLogger("import_engine.metrics")
@@ -21,9 +23,9 @@ class FKResolver:
             if isinstance(f_config, dict) and "fk" in f_config
         }
         # Local identity maps: field_name -> lookup_value -> instance
-        self._cache: Dict[str, Dict[Any, models.Model]] = defaultdict(dict)
+        self._cache: dict[str, dict[Any, models.Model]] = defaultdict(dict)
 
-    def prefetch(self, rows_data: List[Dict[str, Any]]):
+    def prefetch(self, rows_data: list[dict[str, Any]]):
         """
         Processes a batch of rows to resolve all foreign keys in minimal queries.
         Supports automatic creation for missing records if configured.
@@ -102,7 +104,7 @@ class FKResolver:
                 }
             )
 
-    def resolve(self, f_name: str, value: Any) -> Optional[models.Model]:
+    def resolve(self, f_name: str, value: Any) -> models.Model | None:
         """Returns the resolved instance from the local cache."""
         return self._cache.get(f_name, {}).get(value)
 
