@@ -1,20 +1,21 @@
-import time
-import os
 import logging
+import os
+import time
+
 from celery import shared_task
-from django.db import transaction, IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import F
 
-from import_engine.domain.models import ImportJob, ImportChunk, ImportLog
 from import_engine.domain.config_registry import get_config
-from import_engine.services.mapping.fk_resolver import FKResolver
-from import_engine.validators.dsl import validate_row
-from import_engine.services.persistence import bulk_persist
+from import_engine.domain.models import ImportChunk, ImportJob, ImportLog
 from import_engine.parsing.csv_adapter import CSVAdapter
 from import_engine.parsing.excel_adapter import ExcelAdapter
 from import_engine.services.chunk_generator import generate_chunks_for_job
 from import_engine.services.header_mapper import apply_mapping
+from import_engine.services.mapping.fk_resolver import FKResolver
+from import_engine.services.persistence import bulk_persist
 from import_engine.services.security_service import mask_pii
+from import_engine.validators.dsl import validate_row
 
 logger = logging.getLogger("import_engine.metrics")
 
@@ -27,7 +28,7 @@ def generate_chunks_task(self, job_id):
     except Exception as exc:
         job = ImportJob.objects.get(id=job_id)
         job.status = ImportJob.Status.FAILED
-        job.error_message = f"Orchestration Failed: {str(exc)}"
+        job.error_message = f"Orchestration Failed: {exc!s}"
         job.save(update_fields=["status", "error_message"])
         logger.error(
             {"event": "orchestration_failed", "job_id": job_id, "error": str(exc)}
@@ -372,6 +373,7 @@ def send_progress_update(job_id, payload):
 def check_job_completion(job_id):
     """Finalizes job status after all chunks are complete."""
     from django.utils import timezone
+
     from import_engine.services.diagnostic_service import DiagnosticService
 
     job = ImportJob.objects.get(id=job_id)
